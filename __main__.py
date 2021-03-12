@@ -13,7 +13,9 @@ from prompt_toolkit.widgets import (
     Label,
     TextArea,
     Box,
-    Frame
+    Frame,
+    RadioList,
+    CheckboxList
 )
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.containers import (
@@ -85,7 +87,8 @@ def InputDialog(
 
     ok_button = Button(text=ok_text, handler=on_ok_clicked)
     exit_button = Button(text=cancel_text, handler=on_cancel)
-    textfield = TextArea(multiline=False, accept_handler=on_accept)
+    textfield = TextArea(
+        multiline=False, accept_handler=on_accept, style='bg:#88ff88 #000000')
 
     dialog = Dialog(
         title=title,
@@ -144,12 +147,50 @@ class HelpScreenState:
         self.previous_state = previous_state
 
 
-class Session:
-    def __init__(self, username):
-        self._username = username  # Readonly.
+class SettingsScreenState:
+    root_screen_type = RootScreenType.SETTINGS
 
-    def get_username(self):
-        return self._username
+    def __init__(self, session):
+        self.session = session
+
+
+class Session:
+    def __init__(self, username, settings):
+        self.username = username
+        self.settings = settings
+
+
+class Test:
+    def __init__(self, settings):
+        self.settings = settings
+
+
+class TestSettings:
+    def __init__(self, difficulty, time_limit, content):
+        self.difficulty = difficulty
+        self.time_limit = time_limit
+        self.content = content
+
+
+class TestDifficultySetting(Enum):
+    EASY = auto()
+    NORMAL = auto()
+    HARD = auto()
+    GOD_MODE = auto()
+
+
+class TestTimeLimitSetting(Enum):
+    """Measured in Seconds"""
+    UNLIMITED = -1
+    SLOW = 120
+    NORMAL = 45
+    FAST = 15
+
+
+class TestContentArea(Enum):
+    NUMBER_THEORY = auto()
+    ALGEBRA = auto()
+    GEOMETRY = auto()
 
 
 def SetUsernameScreen(controller):
@@ -157,7 +198,18 @@ def SetUsernameScreen(controller):
         return len(username) > 0
 
     def on_username(username):
-        session = Session(username=username)
+        session = Session(
+            username=username,
+            settings=TestSettings(
+                difficulty=TestDifficultySetting.NORMAL,
+                time_limit=TestTimeLimitSetting.NORMAL,
+                content=set((
+                    TestContentArea.NUMBER_THEORY,
+                    TestContentArea.ALGEBRA,
+                    TestContentArea.GEOMETRY
+                ))
+            )
+        )
         new_state = MenuScreenState(session)
         controller.set_state(new_state)
 
@@ -176,12 +228,13 @@ def create_button_list_keybindings(buttons, key_previous, key_next):
 
     if len(buttons) > 1:
         # pylint: disable=invalid-unary-operand-type
-        is_first_selected = ~has_focus(buttons[0])
+        is_first_not_selected = ~has_focus(buttons[0])
         # pylint: disable=invalid-unary-operand-type
-        is_last_selected = ~has_focus(buttons[-1])
+        is_last_not_selected = ~has_focus(buttons[-1])
 
-        keybindings.add(key_previous, filter=is_first_selected)(focus_previous)
-        keybindings.add(key_next, filter=is_last_selected)(focus_next)
+        keybindings.add(key_previous, filter=is_first_not_selected)(
+            focus_previous)
+        keybindings.add(key_next, filter=is_last_not_selected)(focus_next)
 
     return keybindings
 
@@ -199,7 +252,8 @@ def MenuScreen(controller):
         pass
 
     def on_settings_click():
-        pass
+        new_state = SettingsScreenState(session=controller.state.session)
+        controller.set_state(new_state)
 
     def on_help_click():
         new_state = HelpScreenState(
@@ -224,12 +278,13 @@ def MenuScreen(controller):
                 padding=Dimension(preferred=1, max=1),
                 key_bindings=keybindings
             )
-        ])
+        ]),
+        style='bg:#000000 #ffffff'
     )
 
     toolbar_content = Window(
         content=FormattedTextControl(
-            "Hello %s. Let's play Quick Maths!" % controller.state.session.get_username()
+            "Hello %s. Let's play Quick Maths!" % controller.state.session.username
         ),
         align=WindowAlign.CENTER,
         height=1
@@ -266,7 +321,8 @@ def HelpScreen(controller):
         ),
         padding=0,
         padding_left=1,
-        padding_right=1
+        padding_right=1,
+        style='bg:#88ff88 #000000'
     )
 
     def on_back_click():
@@ -293,6 +349,116 @@ def HelpScreen(controller):
     return ToolbarFrame(body, toolbar_content, position=ToolbarFrameToolbarPosition.BOTTOM)
 
 
+def SettingsScreen(controller):
+    difficulty_ui = RadioList(values=[
+        (TestDifficultySetting.EASY, 'Easy'),
+        (TestDifficultySetting.NORMAL, 'Normal'),
+        (TestDifficultySetting.HARD, 'Hard'),
+        (TestDifficultySetting.GOD_MODE, 'God Mode'),
+    ])
+
+    difficulty_ui.current_value = controller.state.session.settings.difficulty
+
+    time_limit_ui = RadioList(values=[
+        (TestTimeLimitSetting.UNLIMITED, 'Unlimited'),
+        (TestTimeLimitSetting.SLOW, '%ss' %
+         TestTimeLimitSetting.SLOW.value),
+        (TestTimeLimitSetting.NORMAL, '%ss' %
+         TestTimeLimitSetting.NORMAL.value),
+        (TestTimeLimitSetting.FAST, '%ss' %
+         TestTimeLimitSetting.FAST.value),
+    ])
+
+    time_limit_ui.current_value = controller.state.session.settings.time_limit
+
+    content_ui = CheckboxList(values=[
+        (TestContentArea.NUMBER_THEORY, 'Number Theory'),
+        (TestContentArea.ALGEBRA, 'Algebra'),
+        (TestContentArea.GEOMETRY, 'Geometry')
+    ])
+
+    content_ui.current_values = list(controller.state.session.settings.content)
+
+    body = Box(
+        HSplit(
+            [
+                Label(
+                    text=HTML('<b><i>Settings</i></b>'),
+                    dont_extend_height=True,
+                ),
+                VSplit(
+                    [
+                        HSplit(
+                            [
+                                Label(
+                                    text=HTML('<b>Difficulty</b>'),
+                                    dont_extend_height=True
+                                ),
+                                difficulty_ui,
+                                Label(
+                                    text=HTML('<b>Time Limit (Per Q.)</b>'),
+                                    dont_extend_height=True
+                                ),
+                                time_limit_ui
+                            ],
+                            padding=Dimension(preferred=1, max=1)
+                        ),
+                        HSplit(
+                            [
+                                Label(text=HTML('<b>Test Content</b>')),
+                                content_ui
+                            ],
+                            padding=Dimension(preferred=1, max=1)
+                        )
+                    ],
+                )
+            ],
+            padding=Dimension(preferred=1, max=1)
+        ),
+        style='bg:#88ff88 #000000'
+    )
+
+    def on_back_click():
+        difficulty = difficulty_ui.current_value
+        time_limit = time_limit_ui.current_value
+        content = content_ui.current_values
+
+        if len(content) == 0:
+            app = get_app()
+            content_ui._selected_index = 0
+            app.layout.focus(content_ui)
+            return
+
+        new_state = MenuScreenState(
+            session=Session(
+                username=controller.state.session.username,
+                settings=TestSettings(
+                    difficulty=difficulty,
+                    time_limit=time_limit,
+                    content=set(content)
+                )
+            )
+        )
+        controller.set_state(new_state)
+
+    buttons = [
+        Button('back', handler=on_back_click),
+        Button('quit', handler=exit_current_app)
+    ]
+
+    toolbar_content = Box(
+        VSplit(
+            children=buttons,
+            align=HorizontalAlign.CENTER,
+            padding=Dimension(preferred=10, max=10),
+            key_bindings=create_horizontal_button_list_keybindings(buttons)
+        ),
+        height=1
+    )
+
+    return ToolbarFrame(body, toolbar_content, position=ToolbarFrameToolbarPosition.BOTTOM)
+
+
 def RootScreen(controller):
     state = controller.state
 
@@ -304,6 +470,9 @@ def RootScreen(controller):
 
     if state.root_screen_type == RootScreenType.HELP:
         return HelpScreen(controller)
+
+    if state.root_screen_type == RootScreenType.SETTINGS:
+        return SettingsScreen(controller)
 
 
 class Controller:
@@ -325,12 +494,11 @@ def RootController(root_state=UsernameScreenState()):
 
 
 root_style = Style.from_dict({
-    'frame': 'bg:#000000',
     'dialog': 'bg:#88ff88',
     'dialog frame.label': 'bg:#55aa55 #000000',
     'dialog.body': 'bg:#000000 #00ff00',
     'dialog shadow': 'bg:#00aa00',
-    'text-area': 'bg:#55aa55 #000000',
+    'button.focused': 'bg:#228822'
 })
 
 
