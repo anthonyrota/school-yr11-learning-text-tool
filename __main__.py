@@ -446,12 +446,23 @@ def SettingsScreen(controller):
         Button('quit', handler=exit_current_app)
     ]
 
+    toolbar_keybindings = KeyBindings()
+
+    @toolbar_keybindings.add('up')
+    def _toolbar_on_key_up(_):
+        app = get_app()
+        difficulty_ui._selected_index = 0
+        app.layout.focus(difficulty_ui)
+
     toolbar_content = Box(
         VSplit(
             children=buttons,
             align=HorizontalAlign.CENTER,
             padding=Dimension(preferred=10, max=10),
-            key_bindings=create_horizontal_button_list_keybindings(buttons)
+            key_bindings=merge_key_bindings([
+                create_horizontal_button_list_keybindings(buttons),
+                toolbar_keybindings
+            ])
         ),
         height=1
     )
