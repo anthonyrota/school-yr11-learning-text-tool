@@ -31,11 +31,14 @@ class Button:
         self,
         text: str,
         handler: Optional[Callable[[], None]] = None,
-        width: int = None
+        width: int = None,
+        focusable: bool = True,
+        class_=None
     ) -> None:
         self.text = text
         self.handler = handler
         self.width = width
+        self.focusable = focusable
 
         if width is None:
             self.width = max(12, len(text)+2)
@@ -43,10 +46,12 @@ class Button:
         self.control = FormattedTextControl(
             self._get_text_fragments,
             key_bindings=self._get_key_bindings(),
-            focusable=True,
+            focusable=focusable,
         )
 
         def get_style() -> str:
+            if class_:
+                return 'class:%s' % (class_)
             if get_app().layout.has_focus(self):
                 return "class:button.focused"
             else:

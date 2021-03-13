@@ -3,7 +3,7 @@ from functools import reduce
 from enum import Enum, auto
 from time import time
 from string import ascii_uppercase
-from random import randint, choice as random_choice, sample as random_sample
+from random import randint, choice as random_choice, sample as random_sample, shuffle
 
 from prompt_toolkit import HTML
 from prompt_toolkit.styles import Style
@@ -74,18 +74,19 @@ class HelpScreenState:
         self.previous_state = previous_state
 
 
-class PlayingScreenState:
-    root_screen_type = RootScreenType.PLAYING
-
-    def __init__(self, session):
-        self.session = session
-
-
 class SettingsScreenState:
     root_screen_type = RootScreenType.SETTINGS
 
     def __init__(self, session):
         self.session = session
+
+
+class PlayingScreenState:
+    root_screen_type = RootScreenType.PLAYING
+
+    def __init__(self, session, test):
+        self.session = session
+        self.test = test
 
 
 class Session:
@@ -95,16 +96,46 @@ class Session:
 
 
 class Test:
-    def __init__(self, settings):
-        self.settings = settings
-        self.question_number = 0
-        self.questions_correct = 0
+    def __init__(self, questions, question_index):
+        self.questions = questions
+        self.question_index = question_index
+        pass
+
+
+class TestQuestion:
+    def __init__(self, question_component, answer_state):
+        self.question_component = question_component
+        self.answer_state = answer_state
+        pass
+
+
+class TestQuestionAnswerStateType(Enum):
+    NOT_ANSWERED = auto()
+    ANSWERED_CORRECT = auto()
+    ANSWERED_INCORRECT = auto()
+
+
+class TestQuestionAnswerStateNotAnswered:
+    type = TestQuestionAnswerStateType.NOT_ANSWERED
+
+
+class TestQuestionAnswerStateAnsweredCorrect:
+    type = TestQuestionAnswerStateType.ANSWERED_CORRECT
+
+    def __init__(self, chosen_answer):
+        self.chosen_answer = chosen_answer
+
+
+class TestQuestionAnswerStateAnsweredIncorrect:
+    type = TestQuestionAnswerStateType.ANSWERED_INCORRECT
+
+    def __init__(self, chosen_answer):
+        self.chosen_answer = chosen_answer
 
 
 class TestSettings:
-    def __init__(self, difficulty, time_limit, content, question_count):
+    def __init__(self, difficulty, content, question_count):
         self.difficulty = difficulty
-        self.time_limit = time_limit
         self.content = content
         self.question_count = question_count
 
@@ -112,14 +143,6 @@ class TestSettings:
 class TestDifficultySetting(Enum):
     NORMAL = auto()
     HARD = auto()
-
-
-class TestTimeLimitSetting(Enum):
-    """Measured in Seconds"""
-    UNLIMITED = -1
-    SLOW = 120
-    NORMAL = 45
-    FAST = 15
 
 
 class TestContentArea(Enum):
@@ -222,11 +245,10 @@ def SetUsernameScreen(controller):
             username=username,
             settings=TestSettings(
                 difficulty=TestDifficultySetting.NORMAL,
-                time_limit=TestTimeLimitSetting.NORMAL,
                 content=set((
                     TestContentArea.NUMBER_THEORY,
-                    # TestContentArea.ALGEBRA,
-                    # TestContentArea.GEOMETRY
+                    TestContentArea.ALGEBRA,
+                    TestContentArea.GEOMETRY
                 )),
                 question_count=TestQuestionCountSetting.NORMAL
             )
@@ -246,7 +268,13 @@ def SetUsernameScreen(controller):
 
 def MenuScreen(controller):
     def on_start_click():
-        new_state = PlayingScreenState(session=controller.state.session)
+        new_state = PlayingScreenState(
+            session=controller.state.session,
+            test=Test(
+                questions=make_questions(controller),
+                question_index=0
+            )
+        )
         controller.set_state(new_state)
 
     def on_settings_click():
@@ -277,7 +305,7 @@ def MenuScreen(controller):
                 key_bindings=keybindings
             )
         ]),
-        style='bg:#000000 #ffffff'
+        style='bg:#88ff88 #000000'
     )
 
     toolbar_content = Window(
@@ -350,20 +378,9 @@ def HelpScreen(controller):
 def SettingsScreen(controller):
     difficulty_ui = RadioList(values=[
         (TestDifficultySetting.NORMAL, 'Normal'),
-        (TestDifficultySetting.HARD, 'Hard'),
+        (TestDifficultySetting.HARD, 'God Mode'),
     ])
     difficulty_ui.current_value = controller.state.session.settings.difficulty
-
-    time_limit_ui = RadioList(values=[
-        (TestTimeLimitSetting.UNLIMITED, 'Unlimited'),
-        (TestTimeLimitSetting.SLOW, '%ss' %
-         TestTimeLimitSetting.SLOW.value),
-        (TestTimeLimitSetting.NORMAL, '%ss' %
-         TestTimeLimitSetting.NORMAL.value),
-        (TestTimeLimitSetting.FAST, '%ss' %
-         TestTimeLimitSetting.FAST.value),
-    ])
-    time_limit_ui.current_value = controller.state.session.settings.time_limit
 
     content_ui = CheckboxList(values=[
         (TestContentArea.NUMBER_THEORY, 'Number Theory'),
@@ -398,8 +415,8 @@ def SettingsScreen(controller):
                             [
                                 Label(text=HTML('<b>Difficulty</b>')),
                                 difficulty_ui,
-                                Label(text=HTML('<b>Time Limit (Per Q.)</b>')),
-                                time_limit_ui
+                                Label(text=HTML('<b>Question Count</b>')),
+                                question_count_ui
                             ],
                             padding=Dimension(preferred=1, max=1),
                         ),
@@ -407,8 +424,6 @@ def SettingsScreen(controller):
                             [
                                 Label(text=HTML('<b>Test Content</b>')),
                                 content_ui,
-                                Label(text=HTML('<b>Question Count</b>')),
-                                question_count_ui
                             ],
                             padding=Dimension(preferred=1, max=1)
                         )
@@ -423,7 +438,6 @@ def SettingsScreen(controller):
 
     def on_back_click():
         difficulty = difficulty_ui.current_value
-        time_limit = time_limit_ui.current_value
         content = content_ui.current_values
         question_count = question_count_ui.current_value
 
@@ -438,7 +452,6 @@ def SettingsScreen(controller):
                 username=controller.state.session.username,
                 settings=TestSettings(
                     difficulty=difficulty,
-                    time_limit=time_limit,
                     content=set(content),
                     question_count=question_count
                 )
@@ -477,7 +490,7 @@ def SettingsScreen(controller):
 
 class QuestionComponent(ABC):
     @abstractmethod
-    def render(self):
+    def render(self, update_question_answer_state):
         pass
 
     def refocus(self):
@@ -491,26 +504,51 @@ class MultipleChoiceComponent(QuestionComponent):
         self._choices = choices
         self._correct_choice_index = correct_choice_index
 
-    def _create_choice_click_handler(self, choice_index):
-        is_correct_choice_index = self._correct_choice_index == choice_index
+    def _get_is_answered(self):
+        test = self._controller.state.test
+        return test.questions[test.question_index].answer_state.type != TestQuestionAnswerStateType.NOT_ANSWERED
 
-        def on_choice_click():
-            if is_correct_choice_index:
-                pass
-            pass
-
-        return on_choice_click
-
-    def render(self):
+    def render(self, update_question_answer_state):
         question = self._question
         choices = self._choices
+        correct_choice_index = self._correct_choice_index
+        is_answered = self._get_is_answered()
+
+        def make_choice_click_handler(choice_index):
+            is_correct_choice_index = choice_index == correct_choice_index
+
+            def on_choice_click():
+                if is_answered:
+                    return
+                if is_correct_choice_index:
+                    update_question_answer_state(
+                        TestQuestionAnswerStateAnsweredCorrect(choice_index))
+                else:
+                    update_question_answer_state(
+                        TestQuestionAnswerStateAnsweredIncorrect(choice_index))
+
+            return on_choice_click
+
+        test = self._controller.state.test
+        answer_state = test.questions[test.question_index].answer_state
+
+        def make_button(letter, i, choice_text):
+            is_correct_answer = is_answered and i == correct_choice_index
+            is_correct_chosen_answer = is_answered and i == correct_choice_index and answer_state.type == TestQuestionAnswerStateType.ANSWERED_CORRECT and answer_state.chosen_answer == i
+            is_incorrect_chosen_answer = is_answered and i != correct_choice_index and answer_state.type == TestQuestionAnswerStateType.ANSWERED_INCORRECT and answer_state.chosen_answer == i
+
+            return Button(
+                '[%s] %s%s' % (letter, choice_text, ' ✓' if is_correct_chosen_answer else (
+                    ' ✘' if is_incorrect_chosen_answer else '')),
+                handler=make_choice_click_handler(i),
+                focusable=not is_answered,
+                class_='correct' if is_correct_answer else 'incorrect' if is_incorrect_chosen_answer else None
+            )
 
         buttons = [
-            Button(
-                '[%s] %s' % (i, choice_text),
-                handler=self._create_choice_click_handler(i)
-            ) for (i, choice_text) in zip(
+            make_button(letter, i, choice_text) for (letter, i, choice_text) in zip(
                 ascii_uppercase,
+                range(len(choices)),
                 choices,
             )
         ]
@@ -519,7 +557,8 @@ class MultipleChoiceComponent(QuestionComponent):
         self._first_button = first_button
 
         global global__default_target_focus
-        global__default_target_focus = first_button
+        if not is_answered:
+            global__default_target_focus = first_button
 
         keybindings = create_vertical_button_list_keybindings(buttons)
         is_first_button_selected = has_focus(first_button)
@@ -559,12 +598,14 @@ class MultipleChoiceComponent(QuestionComponent):
         )
 
     def refocus(self):
+        if self._get_is_answered():
+            return
         app = get_app()
         first_button = self._first_button
         app.layout.focus(first_button)
 
 
-def number_theory_normal_bodmas(controller):
+def q_number_theory_normal_bodmas(controller):
     difficulty = controller.state.session.settings.difficulty
 
     def add_parens(str):
@@ -612,7 +653,7 @@ def number_theory_normal_bodmas(controller):
 
     def power_op(base):
         (base_str, base_value, _) = base
-        if base_value < 0:
+        if base_value < 0 or base_value > 20:
             return None
         exponent = randint(1, 5 if base_value <=
                            2 else 3 if base_value <= 4 else 2)
@@ -649,9 +690,9 @@ def number_theory_normal_bodmas(controller):
     ]
 
     if difficulty == TestDifficultySetting.NORMAL:
-        iterations = randint(3, 6)
+        iterations = randint(3, 5)
     elif difficulty == TestDifficultySetting.HARD:
-        iterations = randint(5, 8)
+        iterations = randint(5, 25)
 
     def get_random_number_expr():
         number = randint(-10, 10)
@@ -681,6 +722,7 @@ def number_theory_normal_bodmas(controller):
             new_expr = op(expr)
         if new_expr == None:
             continue
+        previous_op = op
         expr = new_expr
         iterations -= 1
 
@@ -699,45 +741,255 @@ def number_theory_normal_bodmas(controller):
             break
 
     choices = [str(expr_value)] + fake_answers
+    shuffle(choices)
+    correct_choice_index = choices.index(str(expr_value))
 
-    return MultipleChoiceComponent(controller, question, choices, 0)
+    return MultipleChoiceComponent(controller, question, choices, correct_choice_index)
+
+
+def q_factorise_quadratic(controller):
+    difficulty = controller.state.session.settings.difficulty
+    if difficulty == TestDifficultySetting.NORMAL:
+        max_val = 8
+        k = 1
+    else:
+        max_val = 100
+        k = randint(1, max_val)
+    a = randint(-max_val, max_val)
+    b = randint(-max_val, max_val)
+    x2_coeff = k
+    x1_coeff = k*(a+b)
+    x0_coeff = k*(a*b)
+    poly = ('' if x2_coeff == 1 else str(x2_coeff)) + 'x^2'
+    if x1_coeff != 0:
+        poly += (' + ' if x1_coeff > 0 else ' - ') + \
+            ('' if abs(x1_coeff) == 1 else str(abs(x1_coeff))) + 'x'
+    if x0_coeff != 0:
+        poly += (' + ' if x0_coeff > 0 else ' - ') + str(abs(x0_coeff))
+    question = f'Factorise {poly} fully.'
+
+    def make_factored_poly(a, b):
+        def make_term(n):
+            if n == 0:
+                return 'x'
+            return '(x'+('+' if n > 0 else '-')+str(abs(n))+')'
+        a_term = make_term(a)
+        b_term = make_term(b)
+        return str('' if k == 1 else str(k))+(a_term+'^2' if a_term == b_term else b_term +
+                                              a_term if b_term == 'x' else a_term+b_term)
+
+    correct_ans = make_factored_poly(a, b)
+    wrong_ans_error_range = (abs(a)+abs(b))//2+4
+    choices = list(set((
+        correct_ans,
+        make_factored_poly(a+randint(-wrong_ans_error_range, wrong_ans_error_range),
+                           b+randint(-wrong_ans_error_range, wrong_ans_error_range)),
+        make_factored_poly(a+randint(-wrong_ans_error_range, wrong_ans_error_range),
+                           b+randint(-wrong_ans_error_range, wrong_ans_error_range)),
+        make_factored_poly(a+randint(-wrong_ans_error_range, wrong_ans_error_range),
+                           b+randint(-wrong_ans_error_range, wrong_ans_error_range)),
+    )))
+    shuffle(choices)
+    correct_choice_index = choices.index(correct_ans)
+
+    return MultipleChoiceComponent(controller, question, choices, correct_choice_index)
+
+
+def generate_pythag_triple_list():
+    # https://stackoverflow.com/questions/575117/generating-unique-ordered-pythagorean-triplets
+    def pythagore_triplets(n):
+        maxn = int(n*(2**0.5))+1
+        squares = [x*x for x in range(maxn+1)]
+        reverse_squares = dict([(squares[i], i) for i in range(maxn+1)])
+        for x in range(1, n):
+            x2 = squares[x]
+            for y in range(x, n+1):
+                y2 = squares[y]
+                z = reverse_squares.get(x2+y2)
+                if z != None:
+                    yield x, y, z
+
+    return list(pythagore_triplets(2000))
+
+
+pythag_triple_list = generate_pythag_triple_list()
+units = ['mm', 'cm', 'm', 'km', ' miles', ' yoctometers', ' planck lengths']
+
+
+def q_find_hypot(controller):
+    difficulty = controller.state.session.settings.difficulty
+    if difficulty == TestDifficultySetting.NORMAL:
+        upper_bound = 15
+    else:
+        upper_bound = len(pythag_triple_list)-1
+    i = randint(0, upper_bound)
+    a, b, c = pythag_triple_list[i]
+    unit = random_choice(units)
+    question = f'What is the length of the hypotenuse in a right angled triangle with non-hypotenuse sides of length {a}{unit} and {b}{unit}?'
+    d, e, f = pythag_triple_list[1 if i == 0 else i-1]
+    choices = list(
+        map(str, set((str(c)+unit, str(d)+unit, str(e)+unit, str(f)+unit))))
+    shuffle(choices)
+    correct_choice_index = choices.index(str(c)+unit)
+    return MultipleChoiceComponent(controller, question, choices, correct_choice_index)
 
 
 QUESTION_BANK = {
     TestContentArea.NUMBER_THEORY: {
         TestDifficultySetting.NORMAL: [
-            number_theory_normal_bodmas
+            q_number_theory_normal_bodmas
         ],
         TestDifficultySetting.HARD: [
-            number_theory_normal_bodmas
+            q_number_theory_normal_bodmas
         ]
     },
     TestContentArea.ALGEBRA: {
         TestDifficultySetting.NORMAL: [
+            q_factorise_quadratic
         ],
         TestDifficultySetting.HARD: [
+            q_factorise_quadratic
         ],
     },
     TestContentArea.GEOMETRY: {
         TestDifficultySetting.NORMAL: [
+            q_find_hypot
         ],
         TestDifficultySetting.HARD: [
+            q_find_hypot
         ],
     }
 }
 
 
+def make_questions(controller):
+    settings = controller.state.session.settings
+    difficulty = settings.difficulty
+    content = settings.content
+    question_count = settings.question_count
+
+    def make_question():
+        content_area = random_choice(list(content))
+        possible_questions = QUESTION_BANK[content_area][difficulty]
+        make_question_component = random_choice(possible_questions)
+        question_component = make_question_component(controller)
+        return TestQuestion(
+            question_component=question_component,
+            answer_state=TestQuestionAnswerStateNotAnswered()
+        )
+
+    return [make_question() for i in range(question_count.value)]
+
+
+def FinishScreen(controller):
+    session = controller.state.session
+    test = controller.state.test
+    questions_count = session.settings.question_count
+    questions_right = sum(1 if question.answer_state.type ==
+                          TestQuestionAnswerStateType.ANSWERED_CORRECT else 0 for question in test.questions)
+
+    text = "Congratulations! You reached the end of the test. You scored %s/%s" % (
+        questions_right, questions_count.value)
+
+    body = Box(
+        TextArea(
+            text,
+            focusable=False,
+            scrollbar=True
+        ),
+        padding=1,
+        style='bg:#88ff88 #000000'
+    )
+
+    def on_back_click():
+        new_state = PlayingScreenState(
+            session=session,
+            test=Test(
+                questions=test.questions,
+                question_index=len(test.questions)-1
+            )
+        )
+        controller.set_state(new_state)
+
+    def on_help_click():
+        new_state = HelpScreenState(
+            session=session,
+            previous_state=controller.state
+        )
+        controller.set_state(new_state)
+
+    def on_menu_click():
+        new_state = MenuScreenState(session=session)
+        controller.set_state(new_state)
+
+    buttons = [
+        Button('(back)', handler=on_back_click),
+        Button('help', handler=on_help_click),
+        Button('back to menu', handler=on_menu_click),
+        Button('quit', handler=exit_current_app)
+    ]
+
+    toolbar_keybindings = create_horizontal_button_list_keybindings(buttons)
+
+    toolbar_content = Box(
+        VSplit(
+            children=buttons,
+            align=HorizontalAlign.CENTER,
+            key_bindings=toolbar_keybindings
+        ),
+        height=1
+    )
+
+    return ToolbarFrame(body, toolbar_content, position=ToolbarFrameToolbarPosition.TOP)
+
+
 def PlayingScreen(controller):
     session = controller.state.session
-    difficulty = session.settings.difficulty
-    # time_limit = session.settings.time_limit
-    content = session.settings.content
-    # question_count = session.settings.question_count
+    test = controller.state.test
 
-    content_area = random_choice(list(content))
-    possible_questions = QUESTION_BANK[content_area][difficulty]
-    make_question_component = random_choice(possible_questions)
-    question_component = make_question_component(controller)
+    if test.question_index == len(test.questions):
+        return FinishScreen(controller)
+
+    current_question = test.questions[test.question_index]
+    current_question_component = current_question.question_component
+
+    def update_question_answer_state(answer_state):
+        new_current_question = TestQuestion(
+            question_component=current_question_component,
+            answer_state=answer_state
+        )
+        new_questions = test.questions.copy()
+        new_questions[test.question_index] = new_current_question
+        new_state = PlayingScreenState(
+            session=session,
+            test=Test(
+                questions=new_questions,
+                question_index=test.question_index
+            )
+        )
+        controller.set_state(new_state)
+
+    body = current_question_component.render(update_question_answer_state)
+
+    def on_back_click():
+        new_state = PlayingScreenState(
+            session=session,
+            test=Test(
+                questions=test.questions,
+                question_index=test.question_index-1
+            )
+        )
+        controller.set_state(new_state)
+
+    def on_next_click():
+        new_state = PlayingScreenState(
+            session=session,
+            test=Test(
+                questions=test.questions,
+                question_index=test.question_index+1
+            )
+        )
+        controller.set_state(new_state)
 
     def on_help_click():
         new_state = HelpScreenState(
@@ -756,12 +1008,25 @@ def PlayingScreen(controller):
         Button('quit', handler=exit_current_app)
     ]
 
+    if test.question_index > 0:
+        buttons.insert(
+            0, Button('(back)', handler=on_back_click))
+
+    if test.question_index == len(test.questions) - 1:
+        buttons.append(Button('(finish test)', handler=on_next_click))
+    else:
+        buttons.append(Button('(next)', handler=on_next_click))
+
+    if current_question.answer_state.type != TestQuestionAnswerStateType.NOT_ANSWERED:
+        global global__default_target_focus
+        global__default_target_focus = buttons[-1]
+
     toolbar_keybindings = create_horizontal_button_list_keybindings(buttons)
     is_button_focused = reduce(lambda a, b: a | b, map(has_focus, buttons))
 
     @toolbar_keybindings.add('down', filter=is_button_focused)
     def _toolbar_on_key_down(_):
-        question_component.refocus()
+        current_question_component.refocus()
 
     toolbar_content = Box(
         VSplit(
@@ -771,8 +1036,6 @@ def PlayingScreen(controller):
         ),
         height=1
     )
-
-    body = question_component.render()
 
     return ToolbarFrame(body, toolbar_content, position=ToolbarFrameToolbarPosition.TOP)
 
@@ -819,7 +1082,9 @@ root_style = Style.from_dict({
     'dialog frame.label': 'bg:#000000 #00ff00',
     'dialog.body': 'bg:#000000 #00ff00',
     'dialog shadow': 'bg:#00aa00',
-    'button.focused': 'bg:#228822'
+    'button.focused': 'bg:#228822',
+    'incorrect': 'bg:#dd0000',
+    'correct': 'bg:#00aa00'
 })
 
 
