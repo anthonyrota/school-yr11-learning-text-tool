@@ -605,7 +605,7 @@ class MultipleChoiceComponent(QuestionComponent):
         app.layout.focus(first_button)
 
 
-def q_number_theory_normal_bodmas(controller):
+def q_number_theory_bodmas(controller):
     difficulty = controller.state.session.settings.difficulty
 
     def add_parens(str):
@@ -837,10 +837,10 @@ def q_find_hypot(controller):
 QUESTION_BANK = {
     TestContentArea.NUMBER_THEORY: {
         TestDifficultySetting.NORMAL: [
-            q_number_theory_normal_bodmas
+            q_number_theory_bodmas
         ],
         TestDifficultySetting.HARD: [
-            q_number_theory_normal_bodmas
+            q_number_theory_bodmas
         ]
     },
     TestContentArea.ALGEBRA: {
