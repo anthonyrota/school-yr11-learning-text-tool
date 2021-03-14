@@ -872,7 +872,7 @@ def q_number_theory_bodmas(controller):
         return (
             str(number),
             number,
-            number > 0
+            number >= 0
         )
 
     expr = get_random_number_expr()
