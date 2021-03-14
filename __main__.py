@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from functools import reduce
+from itertools import chain
 from enum import Enum, auto
 from time import time
-from string import ascii_uppercase
+from string import ascii_lowercase, ascii_uppercase
 from random import randint, choice as random_choice, sample as random_sample, shuffle
 
 from prompt_toolkit import HTML
@@ -10,6 +11,7 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.filters import renderer_height_is_known, has_focus
 from button_replacement import Button
+from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.widgets import (
     Dialog,
     Label,
@@ -180,7 +182,12 @@ def InputDialog(
     ok_button = Button(text=ok_text, handler=on_ok_clicked)
     exit_button = Button(text=cancel_text, handler=on_cancel)
     textfield = TextArea(
-        multiline=False, accept_handler=on_accept, style='bg:#88ff88 #000000')
+        multiline=False,
+        wrap_lines=False,
+        accept_handler=on_accept,
+        get_line_prefix=lambda line_number, wrap_count: '> ',
+        style='bg:#88ff88 #000000 italic'
+    )
 
     dialog = Dialog(
         title=title,
@@ -497,22 +504,23 @@ class QuestionComponent(ABC):
         pass
 
 
-class MultipleChoiceComponent(QuestionComponent):
+def get_is_test_current_question_answered(controller):
+    test = controller.state.test
+    return test.questions[test.question_index].answer_state.type != TestQuestionAnswerStateType.NOT_ANSWERED
+
+
+class MultipleChoiceQuestion(QuestionComponent):
     def __init__(self, controller, question, choices, correct_choice_index):
         self._controller = controller
         self._question = question
         self._choices = choices
         self._correct_choice_index = correct_choice_index
 
-    def _get_is_answered(self):
-        test = self._controller.state.test
-        return test.questions[test.question_index].answer_state.type != TestQuestionAnswerStateType.NOT_ANSWERED
-
     def render(self, update_question_answer_state):
         question = self._question
         choices = self._choices
         correct_choice_index = self._correct_choice_index
-        is_answered = self._get_is_answered()
+        is_answered = get_is_test_current_question_answered(self._controller)
 
         def make_choice_click_handler(choice_index):
             is_correct_choice_index = choice_index == correct_choice_index
@@ -598,11 +606,176 @@ class MultipleChoiceComponent(QuestionComponent):
         )
 
     def refocus(self):
-        if self._get_is_answered():
+        if get_is_test_current_question_answered(self._controller):
             return
         app = get_app()
         first_button = self._first_button
         app.layout.focus(first_button)
+
+
+class InputQuestion(QuestionComponent):
+    def __init__(self, controller, question, get_input_error_msg, is_ans_correct, ex_correct_ans):
+        self._controller = controller
+        self._question = question
+        self._get_input_error_msg = get_input_error_msg
+        self._is_ans_correct = is_ans_correct
+        self._ex_correct_ans = ex_correct_ans
+
+    def render(self, update_question_answer_state):
+        is_answered = get_is_test_current_question_answered(self._controller)
+        error_msg = None
+
+        def on_accept(buffer):
+            if is_answered:
+                return
+            error = self._get_input_error_msg(textfield.text)
+            if error:
+                nonlocal error_msg
+                error_msg = error
+                app = get_app()
+                app.invalidate()
+            else:
+                get_app().layout.focus(ok_button)
+            return True  # Keeps text.
+
+        def on_ok_clicked():
+            if is_answered:
+                return
+            ans = textfield.text
+            error = self._get_input_error_msg(ans)
+            if error:
+                nonlocal error_msg
+                error_msg = error
+                app = get_app()
+                app.invalidate()
+                return
+            if self._is_ans_correct(ans):
+                update_question_answer_state(
+                    TestQuestionAnswerStateAnsweredCorrect(ans))
+            else:
+                update_question_answer_state(
+                    TestQuestionAnswerStateAnsweredIncorrect(ans))
+
+        test = self._controller.state.test
+        answer_state = test.questions[test.question_index].answer_state
+        is_answered_correct = answer_state.type == TestQuestionAnswerStateType.ANSWERED_CORRECT
+        is_answered_incorrect = answer_state.type == TestQuestionAnswerStateType.ANSWERED_INCORRECT
+        textfield = TextArea(
+            multiline=False,
+            wrap_lines=False,
+            read_only=is_answered,
+            focusable=not is_answered,
+            accept_handler=on_accept,
+            text=' ' + answer_state.chosen_answer +
+            (' ✓' if is_answered_correct else ' ✘ answer is ' +
+             self._ex_correct_ans) if is_answered else '',
+            style=correct_style if is_answered_correct else incorrect_style if is_answered_incorrect else 'bg:#aaffaa #000000 italic',
+            get_line_prefix=None if is_answered else lambda line_number, wrap_count: '> '
+        )
+        self._textfield = textfield
+        ok_button = Button(text="Ok", handler=on_ok_clicked,
+                           focusable=not is_answered)
+
+        global global__default_target_focus
+        if not is_answered:
+            global__default_target_focus = textfield
+
+        keybindings = KeyBindings()
+        is_textfield_focused = has_focus(textfield)
+        is_ok_button_focused = has_focus(ok_button)
+
+        @keybindings.add('up', filter=is_textfield_focused)
+        def _on_textfield_key_up(_):
+            focus_first_element()
+
+        @keybindings.add('down', filter=is_textfield_focused)
+        def _on_textfield_key_down(_):
+            app = get_app()
+            app.layout.focus(ok_button)
+
+        @keybindings.add('up', filter=is_ok_button_focused)
+        def _on_ok_button_key_up(_):
+            app = get_app()
+            app.layout.focus(textfield)
+
+        bottom_toolbar = ConditionalContainer(
+            content=Box(
+                VSplit(
+                    children=[
+                        DynamicContainer(
+                            get_container=lambda: Label(text=error_msg or '', width=len(
+                                error_msg) if error_msg else 0, dont_extend_height=True)
+                        )
+                    ],
+                    align=HorizontalAlign.CENTER,
+                    padding=Dimension(preferred=10, max=10),
+                    style='#dd0000'
+                ),
+                height=1
+            ),
+            filter=renderer_height_is_known
+        )
+
+        bottom_group_children = [
+            VSplit(
+                [textfield],
+                align=HorizontalAlign.CENTER
+            )
+        ]
+        if not is_answered:
+            bottom_group_children.append(VSplit(
+                [ok_button],
+                align=HorizontalAlign.CENTER
+            ))
+
+        return Box(
+            HSplit(
+                [
+                    TextArea(
+                        text=self._question,
+                        read_only=True,
+                        focusable=False,
+                        scrollbar=True,
+                        # Push input and ok button to bottom of screen.
+                        height=Dimension(preferred=100000, max=100000)
+                    ),
+                    HSplit(
+                        bottom_group_children,
+                        padding=1,
+                        key_bindings=keybindings,
+                    ),
+                    bottom_toolbar
+                ],
+                padding=Dimension(preferred=2, max=2),
+                width=Dimension(),
+                align=VerticalAlign.TOP
+            ),
+            padding=1,
+            style='bg:#88ff88 #000000'
+        )
+
+    def refocus(self):
+        if get_is_test_current_question_answered(self._controller):
+            return
+        app = get_app()
+        textfield = self._textfield
+        app.layout.focus(textfield)
+
+
+def get_integer_error_msg(text):
+    try:
+        int(text)
+        return None
+    except ValueError:
+        return 'Please enter an integer.'
+
+
+def get_float_error_msg(text):
+    try:
+        float(text)
+        return None
+    except ValueError:
+        return 'Please enter a valid number.'
 
 
 def q_number_theory_bodmas(controller):
@@ -730,6 +903,15 @@ def q_number_theory_bodmas(controller):
 
     question = 'Evaluate %s' % (expr_str)
 
+    if randint(0, 1) == 0:
+        return InputQuestion(
+            controller=controller,
+            question=question,
+            get_input_error_msg=get_integer_error_msg,
+            is_ans_correct=lambda ans: ans == str(expr_value),
+            ex_correct_ans=str(expr_value)
+        )
+
     fake_answer_range = (abs(expr_value) + 15)
     fake_answers = []
     while True:
@@ -744,7 +926,7 @@ def q_number_theory_bodmas(controller):
     shuffle(choices)
     correct_choice_index = choices.index(str(expr_value))
 
-    return MultipleChoiceComponent(controller, question, choices, correct_choice_index)
+    return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
 
 def q_factorise_quadratic(controller):
@@ -792,7 +974,76 @@ def q_factorise_quadratic(controller):
     shuffle(choices)
     correct_choice_index = choices.index(correct_ans)
 
-    return MultipleChoiceComponent(controller, question, choices, correct_choice_index)
+    return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
+
+
+class PolyTerm:
+    def __init__(self, variable, coeff, power):
+        self.variable = variable
+        self.coeff = coeff
+        self.power = power  # Integer >= 0.
+
+
+def poly_to_str(terms):
+    poly_str = ''
+    for term in terms:
+        if term.coeff == 0:
+            continue
+        if term.coeff < 0:
+            if poly_str == '':
+                poly_str += '-'
+            else:
+                poly_str += ' - '
+        elif poly_str != '':
+            poly_str += ' + '
+        if abs(term.coeff) != 1:
+            poly_str += str(abs(term.coeff))
+        if term.power == 0:
+            continue
+        if term.power == 1:
+            poly_str += term.variable
+        else:
+            poly_str += term.variable + '^' + str(term.power)
+    return poly_str
+
+
+def q_simplify_linear(controller):
+    difficulty = controller.state.session.settings.difficulty
+    if difficulty == TestDifficultySetting.NORMAL:
+        variables = random_sample(population=['x', 'y'], k=randint(1, 2))
+        coeff_range = 12
+        max_terms_per_var = 4
+    else:
+        variables = random_sample(population=list(
+            ascii_lowercase), k=randint(3, 8))
+        coeff_range = 2500
+        max_terms_per_var = 10
+    variable_coeffs = [[coeff * random_choice((-1, 1)) for coeff in random_sample(population=range(1, coeff_range), k=randint(
+        2, max_terms_per_var))] for _ in variables]
+    poly_q_terms = [PolyTerm(variable=variable, coeff=coeff, power=1) for (
+        variable, coeffs) in zip(variables, variable_coeffs) for coeff in coeffs]
+    shuffle(poly_q_terms)
+    poly_q = poly_to_str(poly_q_terms)
+    poly_ans_coeffs = [sum(coeffs) for coeffs in variable_coeffs]
+    poly_ans_terms = [PolyTerm(variable=variable, coeff=coeff, power=1) for (
+        variable, coeff) in zip(variables, poly_ans_coeffs)]
+    correct_ans = poly_to_str(poly_ans_terms)
+
+    def make_wrong_ans():
+        def map_term(term):
+            wrong_range = (abs(term.coeff) // 2) + 10
+            return PolyTerm(variable=term.variable, coeff=term.coeff+randint(-wrong_range, wrong_range), power=term.power)
+        return poly_to_str([map_term(term) for term in poly_ans_terms])
+    choices = list(set([
+        correct_ans,
+        make_wrong_ans(),
+        make_wrong_ans(),
+        make_wrong_ans(),
+    ]))
+    shuffle(choices)
+    correct_choice_index = choices.index(correct_ans)
+    question = f'Simplify %s' % (poly_q)
+    return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
 
 def generate_pythag_triple_list():
@@ -831,7 +1082,7 @@ def q_find_hypot(controller):
         map(str, set((str(c)+unit, str(d)+unit, str(e)+unit, str(f)+unit))))
     shuffle(choices)
     correct_choice_index = choices.index(str(c)+unit)
-    return MultipleChoiceComponent(controller, question, choices, correct_choice_index)
+    return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
 
 QUESTION_BANK = {
@@ -845,10 +1096,12 @@ QUESTION_BANK = {
     },
     TestContentArea.ALGEBRA: {
         TestDifficultySetting.NORMAL: [
-            q_factorise_quadratic
+            q_factorise_quadratic,
+            q_simplify_linear
         ],
         TestDifficultySetting.HARD: [
-            q_factorise_quadratic
+            q_factorise_quadratic,
+            q_simplify_linear
         ],
     },
     TestContentArea.GEOMETRY: {
@@ -1077,14 +1330,18 @@ def RootController(root_state=UsernameScreenState()):
     return Controller(root_state, RootScreen)
 
 
+correct_style = 'bg:#00aa00'
+incorrect_style = 'bg:#dd0000'
+
 root_style = Style.from_dict({
     'dialog': 'bg:#88ff88',
     'dialog frame.label': 'bg:#000000 #00ff00',
     'dialog.body': 'bg:#000000 #00ff00',
     'dialog shadow': 'bg:#00aa00',
     'button.focused': 'bg:#228822',
-    'incorrect': 'bg:#dd0000',
-    'correct': 'bg:#00aa00'
+    'correct': correct_style,
+    'incorrect': incorrect_style,
+    'dialog.body text-area last-line': 'nounderline'
 })
 
 
