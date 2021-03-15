@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import reduce
-from itertools import chain
 from enum import Enum, auto
-from time import time
+from time import time as get_cur_time
 from string import ascii_lowercase, ascii_uppercase
 from random import randint, choice as random_choice, sample as random_sample, shuffle
 
@@ -11,7 +10,6 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.filters import renderer_height_is_known, has_focus
 from button_replacement import Button
-from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.widgets import (
     Dialog,
     Label,
@@ -35,6 +33,7 @@ from prompt_toolkit.layout.containers import (
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.key_binding.key_bindings import KeyBindings, merge_key_bindings
 from prompt_toolkit.key_binding.bindings.focus import focus_next, focus_previous
+from prompt_toolkit.output.color_depth import ColorDepth
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.application import Application
 
@@ -98,7 +97,8 @@ class Session:
 
 
 class Test:
-    def __init__(self, questions, question_index):
+    def __init__(self, start_time, questions, question_index):
+        self.start_time = start_time
         self.questions = questions
         self.question_index = question_index
         pass
@@ -275,9 +275,11 @@ def SetUsernameScreen(controller):
 
 def MenuScreen(controller):
     def on_start_click():
+        start_time = get_cur_time()
         new_state = PlayingScreenState(
             session=controller.state.session,
             test=Test(
+                start_time=start_time,
                 questions=make_questions(controller),
                 question_index=0
             )
@@ -770,15 +772,27 @@ def get_integer_error_msg(text):
         return 'Please enter an integer.'
 
 
-def get_float_error_msg(text):
-    try:
-        float(text)
-        return None
-    except ValueError:
-        return 'Please enter a valid number.'
+def get_test_progress(controller, question_index):
+    settings = controller.state.session.settings
+    question_count = settings.question_count.value
+    # Between 0 and 1.
+    return question_index / (question_count-1)
 
 
-def q_number_theory_bodmas(controller):
+# https://stackoverflow.com/questions/1969240/mapping-a-range-of-values-to-another
+def map_range(value, leftMin, leftMax, rightMin, rightMax):
+    # Figure out how 'wide' each range is
+    leftSpan = leftMax - leftMin
+    rightSpan = rightMax - rightMin
+
+    # Convert the left range into a 0-1 range (float)
+    valueScaled = float(value - leftMin) / float(leftSpan)
+
+    # Convert the 0-1 range into a value in the right range.
+    return rightMin + (valueScaled * rightSpan)
+
+
+def q_number_theory_bodmas(controller, question_index):
     difficulty = controller.state.session.settings.difficulty
 
     def add_parens(str):
@@ -862,10 +876,13 @@ def q_number_theory_bodmas(controller):
         parens_op,
     ]
 
+    test_progress = get_test_progress(controller, question_index)
     if difficulty == TestDifficultySetting.NORMAL:
-        iterations = randint(3, 5)
+        difficulty_progression_factor = round(map_range(test_progress, 0, 1, 0, 4))
+        iterations = randint(2+difficulty_progression_factor, 4+difficulty_progression_factor)
     elif difficulty == TestDifficultySetting.HARD:
-        iterations = randint(5, 25)
+        difficulty_progression_factor = round(map_range(test_progress, 0, 1, 0, 15))
+        iterations = randint(5+difficulty_progression_factor, 10+difficulty_progression_factor)
 
     def get_random_number_expr():
         number = randint(-10, 10)
@@ -929,13 +946,16 @@ def q_number_theory_bodmas(controller):
     return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
 
-def q_factorise_quadratic(controller):
+def q_factorise_quadratic(controller, question_index):
     difficulty = controller.state.session.settings.difficulty
+
+    test_progress = get_test_progress(controller, question_index)
+
     if difficulty == TestDifficultySetting.NORMAL:
-        max_val = 8
+        max_val = round(map_range(test_progress, 0, 1, 8, 20))
         k = 1
     else:
-        max_val = 100
+        max_val = round(map_range(test_progress, 0, 1, 25, 100))
         k = randint(1, max_val)
     a = randint(-max_val, max_val)
     b = randint(-max_val, max_val)
@@ -1007,17 +1027,18 @@ def poly_to_str(terms):
     return poly_str
 
 
-def q_simplify_linear(controller):
+def q_simplify_linear(controller, question_index):
     difficulty = controller.state.session.settings.difficulty
+    test_progress = get_test_progress(controller, question_index)
     if difficulty == TestDifficultySetting.NORMAL:
         variables = random_sample(population=['x', 'y'], k=randint(1, 2))
-        coeff_range = 12
-        max_terms_per_var = 4
+        coeff_range = round(map_range(test_progress, 0, 1, 12, 50))
+        max_terms_per_var = round(map_range(test_progress, 0, 1, 2, 6))
     else:
         variables = random_sample(population=list(
             ascii_lowercase), k=randint(3, 8))
-        coeff_range = 2500
-        max_terms_per_var = 10
+        coeff_range = round(map_range(test_progress, 0, 1, 1000, 3000))
+        max_terms_per_var =round(map_range(test_progress, 0, 1, 5, 12))
     variable_coeffs = [[coeff * random_choice((-1, 1)) for coeff in random_sample(population=range(1, coeff_range), k=randint(
         2, max_terms_per_var))] for _ in variables]
     poly_q_terms = [PolyTerm(variable=variable, coeff=coeff, power=1) for (
@@ -1067,12 +1088,13 @@ pythag_triple_list = generate_pythag_triple_list()
 units = ['mm', 'cm', 'm', 'km', ' miles', ' yoctometers', ' planck lengths']
 
 
-def q_find_hypot(controller):
+def q_find_hypot(controller, question_index):
     difficulty = controller.state.session.settings.difficulty
+    test_progress = get_test_progress(controller, question_index)
     if difficulty == TestDifficultySetting.NORMAL:
-        upper_bound = 15
+        upper_bound = round(map_range(test_progress, 0, 1, 15, 50))
     else:
-        upper_bound = len(pythag_triple_list)-1
+        upper_bound = round(map_range(test_progress, 0, 1, 500, len(pythag_triple_list)-1))
     i = randint(0, upper_bound)
     a, b, c = pythag_triple_list[i]
     unit = random_choice(units)
@@ -1121,18 +1143,24 @@ def make_questions(controller):
     content = settings.content
     question_count = settings.question_count
 
-    def make_question():
+    def make_question(question_index):
         content_area = random_choice(list(content))
         possible_questions = QUESTION_BANK[content_area][difficulty]
         make_question_component = random_choice(possible_questions)
-        question_component = make_question_component(controller)
+        question_component = make_question_component(controller, question_index)
         return TestQuestion(
             question_component=question_component,
             answer_state=TestQuestionAnswerStateNotAnswered()
         )
 
-    return [make_question() for i in range(question_count.value)]
+    return [make_question(i) for i in range(question_count.value)]
 
+
+def format_time(time):
+    m, s = divmod(round(time), 60)
+    h, m = divmod(m, 60)
+
+    return 'Hours: %s, Minutes: %s, Seconds: %s' % (h, m, s)
 
 def FinishScreen(controller):
     session = controller.state.session
@@ -1141,8 +1169,13 @@ def FinishScreen(controller):
     questions_right = sum(1 if question.answer_state.type ==
                           TestQuestionAnswerStateType.ANSWERED_CORRECT else 0 for question in test.questions)
 
-    text = "Congratulations! You reached the end of the test. You scored %s/%s" % (
-        questions_right, questions_count.value)
+    start_time = test.start_time
+    current_time = get_cur_time()
+    time_played = current_time - start_time
+    time_played_formatted = format_time(time_played)
+
+    text = "Congratulations! You reached the end of the test. You scored %s/%s.\n\nTime Taken:\n%s" % (
+        questions_right, questions_count.value, time_played_formatted)
 
     body = Box(
         TextArea(
@@ -1158,6 +1191,7 @@ def FinishScreen(controller):
         new_state = PlayingScreenState(
             session=session,
             test=Test(
+                start_time=test.start_time,
                 questions=test.questions,
                 question_index=len(test.questions)-1
             )
@@ -1199,11 +1233,12 @@ def FinishScreen(controller):
 def PlayingScreen(controller):
     session = controller.state.session
     test = controller.state.test
+    question_index = test.question_index
 
     if test.question_index == len(test.questions):
         return FinishScreen(controller)
 
-    current_question = test.questions[test.question_index]
+    current_question = test.questions[question_index]
     current_question_component = current_question.question_component
 
     def update_question_answer_state(answer_state):
@@ -1216,6 +1251,7 @@ def PlayingScreen(controller):
         new_state = PlayingScreenState(
             session=session,
             test=Test(
+                start_time=test.start_time,
                 questions=new_questions,
                 question_index=test.question_index
             )
@@ -1228,6 +1264,7 @@ def PlayingScreen(controller):
         new_state = PlayingScreenState(
             session=session,
             test=Test(
+                start_time=test.start_time,
                 questions=test.questions,
                 question_index=test.question_index-1
             )
@@ -1238,6 +1275,7 @@ def PlayingScreen(controller):
         new_state = PlayingScreenState(
             session=session,
             test=Test(
+                start_time=test.start_time,
                 questions=test.questions,
                 question_index=test.question_index+1
             )
@@ -1283,7 +1321,7 @@ def PlayingScreen(controller):
 
     toolbar_content = Box(
         VSplit(
-            children=buttons,
+            children=[Label(text='Q%s.' % (question_index), dont_extend_height=True)] + buttons,
             align=HorizontalAlign.CENTER,
             key_bindings=toolbar_keybindings
         ),
@@ -1372,6 +1410,7 @@ def build_application():
         """Ensures that at least one element on the screen is focused"""
         app = get_app()
 
+
         # When switching screens or something prompt_toolkit doesn't recognize
         # the new focusable elements added to the screen. This will ensure that
         # at least one container/ui is marked as focusable so the screen can be
@@ -1403,7 +1442,8 @@ def build_application():
         full_screen=True,
         mouse_support=True,
         after_render=ensure_focus,
-        style=root_style
+        style=root_style,
+        color_depth=ColorDepth.DEPTH_24_BIT
     )
 
 
