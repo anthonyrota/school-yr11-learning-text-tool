@@ -4,6 +4,7 @@ from enum import Enum, auto
 from time import time as get_cur_time
 from string import ascii_lowercase, ascii_uppercase
 from random import randint, choice as random_choice, sample as random_sample, shuffle
+from platform import system
 
 from prompt_toolkit import HTML
 from prompt_toolkit.styles import Style
@@ -878,11 +879,15 @@ def q_number_theory_bodmas(controller, question_index):
 
     test_progress = get_test_progress(controller, question_index)
     if difficulty == TestDifficultySetting.NORMAL:
-        difficulty_progression_factor = round(map_range(test_progress, 0, 1, 0, 4))
-        iterations = randint(2+difficulty_progression_factor, 4+difficulty_progression_factor)
+        difficulty_progression_factor = round(
+            map_range(test_progress, 0, 1, 0, 4))
+        iterations = randint(2+difficulty_progression_factor,
+                             4+difficulty_progression_factor)
     elif difficulty == TestDifficultySetting.HARD:
-        difficulty_progression_factor = round(map_range(test_progress, 0, 1, 0, 15))
-        iterations = randint(5+difficulty_progression_factor, 10+difficulty_progression_factor)
+        difficulty_progression_factor = round(
+            map_range(test_progress, 0, 1, 0, 15))
+        iterations = randint(5+difficulty_progression_factor,
+                             10+difficulty_progression_factor)
 
     def get_random_number_expr():
         number = randint(-10, 10)
@@ -1038,7 +1043,7 @@ def q_simplify_linear(controller, question_index):
         variables = random_sample(population=list(
             ascii_lowercase), k=randint(3, 8))
         coeff_range = round(map_range(test_progress, 0, 1, 1000, 3000))
-        max_terms_per_var =round(map_range(test_progress, 0, 1, 5, 12))
+        max_terms_per_var = round(map_range(test_progress, 0, 1, 5, 12))
     variable_coeffs = [[coeff * random_choice((-1, 1)) for coeff in random_sample(population=range(1, coeff_range), k=randint(
         2, max_terms_per_var))] for _ in variables]
     poly_q_terms = [PolyTerm(variable=variable, coeff=coeff, power=1) for (
@@ -1094,7 +1099,8 @@ def q_find_hypot(controller, question_index):
     if difficulty == TestDifficultySetting.NORMAL:
         upper_bound = round(map_range(test_progress, 0, 1, 15, 50))
     else:
-        upper_bound = round(map_range(test_progress, 0, 1, 500, len(pythag_triple_list)-1))
+        upper_bound = round(map_range(test_progress, 0, 1,
+                                      500, len(pythag_triple_list)-1))
     i = randint(0, upper_bound)
     a, b, c = pythag_triple_list[i]
     unit = random_choice(units)
@@ -1147,7 +1153,8 @@ def make_questions(controller):
         content_area = random_choice(list(content))
         possible_questions = QUESTION_BANK[content_area][difficulty]
         make_question_component = random_choice(possible_questions)
-        question_component = make_question_component(controller, question_index)
+        question_component = make_question_component(
+            controller, question_index)
         return TestQuestion(
             question_component=question_component,
             answer_state=TestQuestionAnswerStateNotAnswered()
@@ -1161,6 +1168,7 @@ def format_time(time):
     h, m = divmod(m, 60)
 
     return 'Hours: %s, Minutes: %s, Seconds: %s' % (h, m, s)
+
 
 def FinishScreen(controller):
     session = controller.state.session
@@ -1176,16 +1184,6 @@ def FinishScreen(controller):
 
     text = "Congratulations! You reached the end of the test. You scored %s/%s.\n\nTime Taken:\n%s" % (
         questions_right, questions_count.value, time_played_formatted)
-
-    body = Box(
-        TextArea(
-            text,
-            focusable=False,
-            scrollbar=True
-        ),
-        padding=1,
-        style='bg:#88ff88 #000000'
-    )
 
     def on_back_click():
         new_state = PlayingScreenState(
@@ -1205,26 +1203,108 @@ def FinishScreen(controller):
         )
         controller.set_state(new_state)
 
-    def on_menu_click():
-        new_state = MenuScreenState(session=session)
-        controller.set_state(new_state)
-
-    buttons = [
+    toolbar_buttons = [
         Button('(back)', handler=on_back_click),
         Button('help', handler=on_help_click),
-        Button('back to menu', handler=on_menu_click),
         Button('quit', handler=exit_current_app)
     ]
 
-    toolbar_keybindings = create_horizontal_button_list_keybindings(buttons)
+    toolbar_keybindings = create_horizontal_button_list_keybindings(
+        toolbar_buttons)
+
+    @toolbar_keybindings.add('down')
+    def _toolbar_on_down(_):
+        app = get_app()
+        app.layout.focus(main_buttons[0])
 
     toolbar_content = Box(
         VSplit(
-            children=buttons,
+            children=toolbar_buttons,
             align=HorizontalAlign.CENTER,
             key_bindings=toolbar_keybindings
         ),
         height=1
+    )
+
+    def on_menu_click():
+        new_state = MenuScreenState(session=session)
+        controller.set_state(new_state)
+
+    def on_retry_test_click():
+        start_time = get_cur_time()
+        new_questions = [TestQuestion(question_component=question.question_component,
+                                      answer_state=TestQuestionAnswerStateNotAnswered()) for question in test.questions]
+        new_state = PlayingScreenState(
+            session=session,
+            test=Test(
+                start_time=start_time,
+                questions=new_questions,
+                question_index=0
+            )
+        )
+        controller.set_state(new_state)
+
+    def on_retry_incorrect_questions_click():
+        def map_question(question):
+            if question.answer_state.type == TestQuestionAnswerStateType.ANSWERED_INCORRECT:
+                return TestQuestion(question_component=question.question_component, answer_state=TestQuestionAnswerStateNotAnswered())
+            return question
+
+        new_questions = [map_question(question) for question in test.questions]
+        new_state = PlayingScreenState(
+            session=session,
+            test=Test(
+                start_time=test.start_time,
+                questions=new_questions,
+                question_index=0
+            )
+        )
+        controller.set_state(new_state)
+
+    main_buttons = [
+        Button('back to menu', handler=on_menu_click),
+        Button('retry test', handler=on_retry_test_click)
+    ]
+
+    if questions_right != questions_count:
+        main_buttons.append(Button('retry incorrect questions',
+                                   handler=on_retry_incorrect_questions_click))
+
+    global global__default_target_focus
+    global__default_target_focus = main_buttons[0]
+
+    main_keybindings = create_vertical_button_list_keybindings(main_buttons)
+
+    @main_keybindings.add('up', filter=has_focus(main_buttons[0]))
+    def _first_main_button_on_key_up(_):
+        focus_first_element()
+
+    body = Box(
+        HSplit(
+            [
+                TextArea(
+                    text=text,
+                    read_only=True,
+                    focusable=False,
+                    scrollbar=True,
+                ),
+                HSplit(
+                    [
+                        VSplit(
+                            children=[button],
+                            align=HorizontalAlign.CENTER
+                        ) for button in main_buttons
+                    ],
+                    padding=1,
+                    key_bindings=main_keybindings
+                )
+            ],
+            padding=Dimension(preferred=2, max=2),
+            width=Dimension(),
+            align=VerticalAlign.TOP
+        ),
+        padding=1,
+        style='bg:#88ff88 #000000'
     )
 
     return ToolbarFrame(body, toolbar_content, position=ToolbarFrameToolbarPosition.TOP)
@@ -1319,9 +1399,11 @@ def PlayingScreen(controller):
     def _toolbar_on_key_down(_):
         current_question_component.refocus()
 
+    question_label_text = 'Q%s.' % (question_index+1)
     toolbar_content = Box(
         VSplit(
-            children=[Label(text='Q%s.' % (question_index), dont_extend_height=True)] + buttons,
+            children=[Label(text=question_label_text, dont_extend_height=True, width=len(
+                question_label_text)+3)] + buttons,
             align=HorizontalAlign.CENTER,
             key_bindings=toolbar_keybindings
         ),
@@ -1410,7 +1492,6 @@ def build_application():
         """Ensures that at least one element on the screen is focused"""
         app = get_app()
 
-
         # When switching screens or something prompt_toolkit doesn't recognize
         # the new focusable elements added to the screen. This will ensure that
         # at least one container/ui is marked as focusable so the screen can be
@@ -1443,7 +1524,7 @@ def build_application():
         mouse_support=True,
         after_render=ensure_focus,
         style=root_style,
-        color_depth=ColorDepth.DEPTH_24_BIT
+        color_depth=ColorDepth.DEPTH_24_BIT if system() == 'Windows' else None
     )
 
 
