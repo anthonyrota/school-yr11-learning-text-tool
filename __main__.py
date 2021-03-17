@@ -779,7 +779,7 @@ def get_float_error_msg(text):
         float(text)
         return None
     except ValueError:
-        return 'Please enter an valid number.'
+        return 'Please enter a valid number.'
 
 
 def get_test_progress(controller, question_index):
