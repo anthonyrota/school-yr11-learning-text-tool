@@ -1250,13 +1250,17 @@ def FinishScreen(controller):
                 return TestQuestion(question_component=question.question_component, answer_state=TestQuestionAnswerStateNotAnswered())
             return question
 
+        for i, question in enumerate(test.questions):
+            if question.answer_state.type == TestQuestionAnswerStateType.ANSWERED_INCORRECT:
+                first_incorrect_question_index = i
+                break
         new_questions = [map_question(question) for question in test.questions]
         new_state = PlayingScreenState(
             session=session,
             test=Test(
                 start_time=test.start_time,
                 questions=new_questions,
-                question_index=0
+                question_index=first_incorrect_question_index
             )
         )
         controller.set_state(new_state)
@@ -1266,7 +1270,7 @@ def FinishScreen(controller):
         Button('retry test', handler=on_retry_test_click)
     ]
 
-    if questions_right != questions_count:
+    if questions_right != questions_count.value:
         main_buttons.append(Button('retry incorrect questions',
                                    handler=on_retry_incorrect_questions_click))
 
