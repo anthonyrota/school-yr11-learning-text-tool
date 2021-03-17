@@ -3,8 +3,9 @@ from functools import reduce
 from enum import Enum, auto
 from time import time as get_cur_time
 from string import ascii_lowercase, ascii_uppercase
-from random import randint, choice as random_choice, sample as random_sample, shuffle
+from random import randint, uniform as randfloat, choice as random_choice, sample as random_sample, shuffle
 from platform import system
+from math import pi, sqrt
 
 from prompt_toolkit import HTML
 from prompt_toolkit.styles import Style
@@ -773,6 +774,14 @@ def get_integer_error_msg(text):
         return 'Please enter an integer.'
 
 
+def get_float_error_msg(text):
+    try:
+        float(text)
+        return None
+    except ValueError:
+        return 'Please enter an valid number.'
+
+
 def get_test_progress(controller, question_index):
     settings = controller.state.session.settings
     question_count = settings.question_count.value
@@ -793,7 +802,7 @@ def map_range(value, leftMin, leftMax, rightMin, rightMax):
     return rightMin + (valueScaled * rightSpan)
 
 
-def q_number_theory_bodmas(controller, question_index):
+def q_bodmas(controller, question_index):
     difficulty = controller.state.session.settings.difficulty
 
     def add_parens(str):
@@ -1113,13 +1122,201 @@ def q_find_hypot(controller, question_index):
     return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
 
+def q_general_geometry(controller, question_index):
+    difficulty = controller.state.session.settings.difficulty
+    test_progress = get_test_progress(controller, question_index)
+
+    def rand_progressive(min_upper, max_upper):
+        difficulty_factor = 1 if difficulty == TestDifficultySetting.NORMAL else 100
+        return randint(min_upper, round(map_range(test_progress, 0, 1, min_upper + (max_upper-min_upper)/5, max_upper * difficulty_factor)))
+
+    def circle_area_from_radius(unit):
+        radius = rand_progressive(5, 100)
+        return (f'What is the area of a circle with radius {radius}{unit}', pi * radius**2)
+
+    def circle_area_from_diameter(unit):
+        diameter = rand_progressive(5, 200)
+        return (f'What is the area of a circle with diameter {diameter}{unit}', pi * (diameter/2)**2)
+
+    def circle_area_from_circumference(unit):
+        circumference = rand_progressive(5, 600)
+        radius = circumference/2/pi
+        return (f'What is the area of a circle with circumference {circumference}{unit}', pi * radius**2)
+
+    def circle_circumference_from_radius(unit):
+        radius = rand_progressive(5, 100)
+        return (f'What is the circumference of a circle with radius {radius}{unit}', 2*pi*radius)
+
+    def circle_circumference_from_diameter(unit):
+        diameter = rand_progressive(5, 200)
+        return (f'What is the circumference of a circle with diameter {diameter}{unit}', 2*pi*(diameter/2))
+
+    def circle_circumference_from_area(unit):
+        area = rand_progressive(5, 10000)
+        radius = sqrt(area/pi)
+        return (f'What is the circumference of a circle with area {area}{unit}', 2*pi*radius)
+
+    def circle_radius_from_diameter(unit):
+        diameter = rand_progressive(5, 200)
+        return (f'What is the radius of a circle with diameter {diameter}{unit}', diameter/2)
+
+    def circle_radius_from_circumference(unit):
+        circumference = rand_progressive(5, 600)
+        return (f'What is the radius of a circle with circumference {circumference}{unit}', circumference/2/pi)
+
+    def circle_radius_from_area(unit):
+        area = rand_progressive(5, 10000)
+        return (f'What is the radius of a circle with area {area}{unit}', sqrt(area/pi))
+
+    def circle_diameter_from_radius(unit):
+        radius = rand_progressive(5, 100)
+        return (f'What is the diameter of a circle with radius {radius}{unit}', radius*2)
+
+    def circle_diameter_from_circumference(unit):
+        circumference = rand_progressive(5, 600)
+        return (f'What is the diameter of a circle with circumference {circumference}{unit}', circumference/pi)
+
+    def circle_diameter_from_area(unit):
+        area = rand_progressive(5, 10000)
+        return (f'What is the diameter of a circle with area {area}{unit}', sqrt(area/pi)*2)
+
+    def square_perimeter_from_side_length(unit):
+        side_length = rand_progressive(5, 100)
+        return (f'What is the perimeter of a square with side length {side_length}{unit}', side_length * 4)
+
+    def square_perimeter_from_area(unit):
+        area = rand_progressive(5, 10000)
+        return (f'What is the perimeter of a square with area {area}{unit}', sqrt(area)*4)
+
+    def square_side_length_from_perimeter(unit):
+        perimeter = rand_progressive(5, 400)
+        return (f'What is the side length of a square with perimeter {perimeter}{unit}', perimeter/4)
+
+    def square_side_length_from_area(unit):
+        area = rand_progressive(5, 100000)
+        return (f'What is the side length of a square with area {area}{unit}', sqrt(area))
+
+    def square_area_from_side_length(unit):
+        side_length = rand_progressive(5, 100)
+        return (f'What is the area of a square with side length {side_length}{unit}', side_length**2)
+
+    def square_area_from_perimeter(unit):
+        perimeter = rand_progressive(5, 400)
+        return (f'What is the area of a square with perimeter {perimeter}{unit}', (perimeter/4)**2)
+
+    def rectangle_area_from_side_lengths(unit):
+        a = rand_progressive(5, 100)
+        b = rand_progressive(5, 100)
+        return (f'What is the area of a rectangle with side lengths {a}{unit} and {b}{unit}', a*b)
+
+    def rectangle_perimeter_from_side_lengths(unit):
+        a = rand_progressive(5, 100)
+        b = rand_progressive(5, 100)
+        return (f'What is the perimeter of a rectangle with side lengths {a}{unit} and {b}{unit}', 2*(a+b))
+
+    def triangle_area_from_base_height(unit):
+        base = rand_progressive(5, 100)
+        height = rand_progressive(5, 100)
+        return (f'What is the area of a triangle with base {base}{unit} and height {height}{unit}', base*height/2)
+
+    def trapezoid_area_from_top_bottom_height(unit):
+        top = rand_progressive(5, 100)
+        bottom = rand_progressive(5, 100)
+        height = rand_progressive(5, 100)
+        return (f'What is the area of a trapezoid with bottom side {bottom}{unit}, top side {top}{unit} and height {height}{unit}', (bottom+top)/2*height)
+
+    def rhombus_area_from_diagonals(unit):
+        p = rand_progressive(5, 100)
+        q = rand_progressive(5, 100)
+        return (f'What is the area of a rhombus with diagonals {p}{unit} and {q}{unit}', p*q/2)
+
+    def kite_area_from_diagonals(unit):
+        p = rand_progressive(5, 100)
+        q = rand_progressive(5, 100)
+        return (f'What is the area of a kite with diagonals {p}{unit} and {q}{unit}', p*q/2)
+
+    q_factories = [
+        circle_area_from_radius,
+        circle_area_from_diameter,
+        circle_area_from_circumference,
+        circle_circumference_from_radius,
+        circle_circumference_from_diameter,
+        circle_circumference_from_area,
+        circle_radius_from_diameter,
+        circle_radius_from_circumference,
+        circle_radius_from_area,
+        circle_diameter_from_radius,
+        circle_diameter_from_circumference,
+        circle_diameter_from_area,
+        square_perimeter_from_side_length,
+        square_perimeter_from_area,
+        square_side_length_from_perimeter,
+        square_side_length_from_area,
+        square_area_from_side_length,
+        square_area_from_perimeter,
+        rectangle_area_from_side_lengths,
+        rectangle_perimeter_from_side_lengths,
+        triangle_area_from_base_height,
+        trapezoid_area_from_top_bottom_height,
+        rhombus_area_from_diagonals,
+        kite_area_from_diagonals,
+    ]
+
+    q_factory = random_choice(q_factories)
+    unit = random_choice(units)
+    (question, exact_ans) = q_factory(unit)
+    dp = 0 if float(exact_ans).is_integer() else randint(0, 4)
+
+    # https://stackoverflow.com/questions/20457038/how-to-round-to-2-decimals-with-python
+    def roundTraditional(val, digits):
+        return round(val+10**(-len(str(val))-1), digits)
+
+    correct_ans = float(roundTraditional(exact_ans, dp))
+    question += f' to the nearest {unit.lstrip().rstrip("s")}?' if dp == 0 else f' to {dp} decimal place{"" if dp == 1 else "s"}?'
+
+    def num_to_str(num):
+        return '%.*f' % (dp, num)
+
+    if randint(0, 1) == 0:
+        return InputQuestion(
+            controller=controller,
+            question=question,
+            get_input_error_msg=get_float_error_msg,
+            is_ans_correct=lambda num: num_to_str(
+                float(num)) == num_to_str(correct_ans),
+            ex_correct_ans=num_to_str(correct_ans)
+        )
+
+    fake_answer_min = round(correct_ans / 3) + 1
+    fake_answer_max = round(correct_ans * 3) + 1
+    fake_answers = []
+
+    while True:
+        if correct_ans.is_integer():
+            fake_answer = randint(fake_answer_min, fake_answer_max)
+        else:
+            fake_answer = roundTraditional(
+                randfloat(fake_answer_min, fake_answer_max), dp)
+        if fake_answer == correct_ans or fake_answer in fake_answers:
+            continue
+        fake_answers.append(fake_answer)
+        if len(fake_answers) == 3:
+            break
+
+    choices = [num_to_str(num)+unit for num in ([correct_ans] + fake_answers)]
+    shuffle(choices)
+    correct_choice_index = choices.index(num_to_str(correct_ans)+unit)
+
+    return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
+
+
 QUESTION_BANK = {
     TestContentArea.NUMBER_THEORY: {
         TestDifficultySetting.NORMAL: [
-            q_number_theory_bodmas
+            q_bodmas
         ],
         TestDifficultySetting.HARD: [
-            q_number_theory_bodmas
+            q_bodmas
         ]
     },
     TestContentArea.ALGEBRA: {
@@ -1134,10 +1331,19 @@ QUESTION_BANK = {
     },
     TestContentArea.GEOMETRY: {
         TestDifficultySetting.NORMAL: [
-            q_find_hypot
+            q_find_hypot,
+            # Multiple times to increase probability of being chosen.
+            q_general_geometry,
+            q_general_geometry,
+            q_general_geometry,
+            q_general_geometry
         ],
         TestDifficultySetting.HARD: [
-            q_find_hypot
+            q_find_hypot,
+            q_general_geometry,
+            q_general_geometry,
+            q_general_geometry,
+            q_general_geometry
         ],
     }
 }
