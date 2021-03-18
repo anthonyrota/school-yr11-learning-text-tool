@@ -1235,6 +1235,16 @@ def q_general_geometry(controller, question_index):
         q = rand_progressive(5, 100)
         return (f'What is the area of a kite with diagonals {p}{unit} and {q}{unit}', p*q/2)
 
+    def hypot_from_ab(unit):
+        a = rand_progressive(5, 100)
+        b = rand_progressive(5, 100)
+        return (f'What is the length of the hypotenuse in a right angled triangle with non-hypotenuse sides of length {a}{unit} and {b}{unit}', sqrt(a**2+b**2))
+
+    def b_from_hypot_a(unit):
+        a = rand_progressive(5, 100)
+        hypot = rand_progressive(a+1, a*2)
+        return (f'What is the length of the other non-hypotenuse side in a right angled triangle with hypotenuse of length {hypot}{unit} and non-hypotenuse side of length {a}{unit}', sqrt(hypot**2-a**2))
+
     q_factories = [
         circle_area_from_radius,
         circle_area_from_diameter,
@@ -1260,6 +1270,8 @@ def q_general_geometry(controller, question_index):
         trapezoid_area_from_top_bottom_height,
         rhombus_area_from_diagonals,
         kite_area_from_diagonals,
+        hypot_from_ab,
+        b_from_hypot_a
     ]
 
     q_factory = random_choice(q_factories)
@@ -1277,13 +1289,21 @@ def q_general_geometry(controller, question_index):
     def num_to_str(num):
         return '%.*f' % (dp, num)
 
+    def get_input_error_msg(text):
+        float_err = get_float_error_msg(text)
+        if float_err is not None:
+            return float_err
+        num = float(text)
+        if num < 0:
+            return 'Please enter a positive integer.'
+        return None
+
     if randint(0, 1) == 0:
         return InputQuestion(
             controller=controller,
             question=question,
-            get_input_error_msg=get_float_error_msg,
-            is_ans_correct=lambda num: num_to_str(
-                float(num)) == num_to_str(correct_ans),
+            get_input_error_msg=get_input_error_msg,
+            is_ans_correct=lambda num: num == num_to_str(correct_ans),
             ex_correct_ans=num_to_str(correct_ans)
         )
 
@@ -1310,54 +1330,33 @@ def q_general_geometry(controller, question_index):
     return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
 
-QUESTION_BANK = {
-    TestContentArea.NUMBER_THEORY: {
-        TestDifficultySetting.NORMAL: [
-            q_bodmas
-        ],
-        TestDifficultySetting.HARD: [
-            q_bodmas
-        ]
-    },
-    TestContentArea.ALGEBRA: {
-        TestDifficultySetting.NORMAL: [
-            q_factorise_quadratic,
-            q_simplify_linear
-        ],
-        TestDifficultySetting.HARD: [
-            q_factorise_quadratic,
-            q_simplify_linear
-        ],
-    },
-    TestContentArea.GEOMETRY: {
-        TestDifficultySetting.NORMAL: [
-            q_find_hypot,
-            # Multiple times to increase probability of being chosen.
-            q_general_geometry,
-            q_general_geometry,
-            q_general_geometry,
-            q_general_geometry
-        ],
-        TestDifficultySetting.HARD: [
-            q_find_hypot,
-            q_general_geometry,
-            q_general_geometry,
-            q_general_geometry,
-            q_general_geometry
-        ],
-    }
-}
-
-
 def make_questions(controller):
     settings = controller.state.session.settings
     difficulty = settings.difficulty
     content = settings.content
     question_count = settings.question_count
 
+    possible_questions = []
+    if TestContentArea.NUMBER_THEORY in content:
+        possible_questions += [
+            q_bodmas
+        ]
+    if TestContentArea.ALGEBRA in content:
+        possible_questions += [
+            q_factorise_quadratic,
+            q_simplify_linear
+        ]
+    if TestContentArea.GEOMETRY in content:
+        possible_questions += [
+            q_find_hypot,
+            # Multiple times to increase probability of being chosen!!!!!
+            q_general_geometry,
+            q_general_geometry,
+            q_general_geometry,
+            q_general_geometry
+        ]
+
     def make_question(question_index):
-        content_area = random_choice(list(content))
-        possible_questions = QUESTION_BANK[content_area][difficulty]
         make_question_component = random_choice(possible_questions)
         question_component = make_question_component(
             controller, question_index)
