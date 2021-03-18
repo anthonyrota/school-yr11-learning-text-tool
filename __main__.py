@@ -39,7 +39,6 @@ from prompt_toolkit.output.color_depth import ColorDepth
 from prompt_toolkit.application.current import get_app
 from prompt_toolkit.application import Application
 
-
 # The target element to focus when switching scenes. if none, equals None.
 # this is safe because only one app can run at a time.
 global__default_target_focus = None
@@ -254,11 +253,7 @@ def SetUsernameScreen(controller):
             username=username,
             settings=TestSettings(
                 difficulty=TestDifficultySetting.NORMAL,
-                content=set((
-                    TestContentArea.NUMBER_THEORY,
-                    TestContentArea.ALGEBRA,
-                    TestContentArea.GEOMETRY
-                )),
+                content={TestContentArea.NUMBER_THEORY, TestContentArea.ALGEBRA, TestContentArea.GEOMETRY},
                 question_count=TestQuestionCountSetting.NORMAL
             )
         )
@@ -671,8 +666,8 @@ class InputQuestion(QuestionComponent):
             focusable=not is_answered,
             accept_handler=on_accept,
             text=' ' + answer_state.chosen_answer +
-            (' ✓' if is_answered_correct else ' ✘ answer is ' +
-             self._ex_correct_ans) if is_answered else '',
+                 (' ✓' if is_answered_correct else ' ✘ answer is ' +
+                                                   self._ex_correct_ans) if is_answered else '',
             style=correct_style if is_answered_correct else incorrect_style if is_answered_incorrect else 'bg:#aaffaa #000000 italic',
             get_line_prefix=None if is_answered else lambda line_number, wrap_count: '> '
         )
@@ -786,7 +781,7 @@ def get_test_progress(controller, question_index):
     settings = controller.state.session.settings
     question_count = settings.question_count.value
     # Between 0 and 1.
-    return question_index / (question_count-1)
+    return question_index / (question_count - 1)
 
 
 # https://stackoverflow.com/questions/1969240/mapping-a-range-of-values-to-another
@@ -806,14 +801,14 @@ def q_bodmas(controller, question_index):
     difficulty = controller.state.session.settings.difficulty
 
     def add_parens(str):
-        return '(%s)' % (str)
+        return '(%s)' % str
 
     def addition_op(lhs, rhs):
         (lhs_str, lhs_value, _) = lhs
         (rhs_str, rhs_value, _) = rhs
         new_str = '%s + %s' % (lhs_str, rhs_str)
         new_value = lhs_value + rhs_value
-        return (new_str, new_value, False)
+        return new_str, new_value, False
 
     def subtraction_op(lhs, rhs):
         (lhs_str, lhs_value, _) = lhs
@@ -821,7 +816,7 @@ def q_bodmas(controller, question_index):
         new_str = '%s - %s' % (lhs_str,
                                rhs_str if is_rhs_grouped else add_parens(rhs_str))
         new_value = lhs_value - rhs_value
-        return (new_str, new_value, False)
+        return new_str, new_value, False
 
     def multiplication_op(lhs, rhs):
         (lhs_str, lhs_value, is_lhs_grouped) = lhs
@@ -829,12 +824,12 @@ def q_bodmas(controller, question_index):
         new_str = '%s * %s' % (lhs_str if is_lhs_grouped else add_parens(
             lhs_str), rhs_str if is_rhs_grouped else add_parens(rhs_str))
         new_value = lhs_value * rhs_value
-        return (new_str, new_value, new_value >= 0)
+        return new_str, new_value, new_value >= 0
 
     # https://stackoverflow.com/questions/6800193/what-is-the-most-efficient-way-of-finding-all-the-factors-of-a-number-in-python
     def factors(n):
         return set(reduce(list.__add__,
-                          ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
+                          ([i, n // i] for i in range(1, int(n ** 0.5) + 1) if n % i == 0)))
 
     def division_op(dividend):
         (dividend_str, dividend_value, is_dividend_grouped) = dividend
@@ -846,24 +841,24 @@ def q_bodmas(controller, question_index):
         new_str = '%s / %s' % (
             dividend_str if is_dividend_grouped else add_parens(dividend_str), divisor)
         new_value = dividend_value // divisor
-        return (new_str, new_value, new_value >= 0)
+        return new_str, new_value, new_value >= 0
 
     def power_op(base):
         (base_str, base_value, _) = base
         if base_value < 0 or base_value > 20:
             return None
         exponent = randint(1, 5 if base_value <=
-                           2 else 3 if base_value <= 4 else 2)
+                                   2 else 3 if base_value <= 4 else 2)
         new_str = '%s^%s' % (
             base_str if base_str.isdigit() else add_parens(base_str), exponent)
         new_value = base_value ** exponent
-        return (new_str, new_value, False)
+        return new_str, new_value, False
 
     def negate_op(expr):
         (expr_str, expr_value, is_expr_grouped) = expr
         new_str = '-%s' % (expr_str if is_expr_grouped else add_parens(expr_str))
         new_value = -expr_value
-        return (new_str, new_value, False)
+        return new_str, new_value, False
 
     def parens_op(expr):
         (expr_str, expr_value, _) = expr
@@ -871,7 +866,7 @@ def q_bodmas(controller, question_index):
             return None
         new_str = add_parens(expr_str)
         new_value = expr_value
-        return (new_str, new_value, True)
+        return new_str, new_value, True
 
     multi_ops = [
         addition_op,
@@ -890,13 +885,13 @@ def q_bodmas(controller, question_index):
     if difficulty == TestDifficultySetting.NORMAL:
         difficulty_progression_factor = round(
             map_range(test_progress, 0, 1, 0, 4))
-        iterations = randint(2+difficulty_progression_factor,
-                             4+difficulty_progression_factor)
+        iterations = randint(2 + difficulty_progression_factor,
+                             4 + difficulty_progression_factor)
     elif difficulty == TestDifficultySetting.HARD:
         difficulty_progression_factor = round(
             map_range(test_progress, 0, 1, 0, 15))
-        iterations = randint(5+difficulty_progression_factor,
-                             10+difficulty_progression_factor)
+        iterations = randint(5 + difficulty_progression_factor,
+                             10 + difficulty_progression_factor)
 
     def get_random_number_expr():
         number = randint(-10, 10)
@@ -924,7 +919,7 @@ def q_bodmas(controller, question_index):
             if op == previous_op:
                 continue
             new_expr = op(expr)
-        if new_expr == None:
+        if new_expr is None:
             continue
         previous_op = op
         expr = new_expr
@@ -974,12 +969,12 @@ def q_factorise_quadratic(controller, question_index):
     a = randint(-max_val, max_val)
     b = randint(-max_val, max_val)
     x2_coeff = k
-    x1_coeff = k*(a+b)
-    x0_coeff = k*(a*b)
+    x1_coeff = k * (a + b)
+    x0_coeff = k * (a * b)
     poly = ('' if x2_coeff == 1 else str(x2_coeff)) + 'x^2'
     if x1_coeff != 0:
         poly += (' + ' if x1_coeff > 0 else ' - ') + \
-            ('' if abs(x1_coeff) == 1 else str(abs(x1_coeff))) + 'x'
+                ('' if abs(x1_coeff) == 1 else str(abs(x1_coeff))) + 'x'
     if x0_coeff != 0:
         poly += (' + ' if x0_coeff > 0 else ' - ') + str(abs(x0_coeff))
     question = f'Factorise {poly} fully.'
@@ -988,23 +983,21 @@ def q_factorise_quadratic(controller, question_index):
         def make_term(n):
             if n == 0:
                 return 'x'
-            return '(x'+('+' if n > 0 else '-')+str(abs(n))+')'
+            return '(x' + ('+' if n > 0 else '-') + str(abs(n)) + ')'
+
         a_term = make_term(a)
         b_term = make_term(b)
-        return str('' if k == 1 else str(k))+(a_term+'^2' if a_term == b_term else b_term +
-                                              a_term if b_term == 'x' else a_term+b_term)
+        return str('' if k == 1 else str(k)) + (
+            a_term + '^2' if a_term == b_term else b_term + a_term if b_term == 'x' else a_term + b_term)
 
     correct_ans = make_factored_poly(a, b)
-    wrong_ans_error_range = (abs(a)+abs(b))//2+4
-    choices = list(set((
-        correct_ans,
-        make_factored_poly(a+randint(-wrong_ans_error_range, wrong_ans_error_range),
-                           b+randint(-wrong_ans_error_range, wrong_ans_error_range)),
-        make_factored_poly(a+randint(-wrong_ans_error_range, wrong_ans_error_range),
-                           b+randint(-wrong_ans_error_range, wrong_ans_error_range)),
-        make_factored_poly(a+randint(-wrong_ans_error_range, wrong_ans_error_range),
-                           b+randint(-wrong_ans_error_range, wrong_ans_error_range)),
-    )))
+    wrong_ans_error_range = (abs(a) + abs(b)) // 2 + 4
+    choices = list({correct_ans, make_factored_poly(a + randint(-wrong_ans_error_range, wrong_ans_error_range),
+                                                    b + randint(-wrong_ans_error_range, wrong_ans_error_range)),
+                    make_factored_poly(a + randint(-wrong_ans_error_range, wrong_ans_error_range),
+                                       b + randint(-wrong_ans_error_range, wrong_ans_error_range)),
+                    make_factored_poly(a + randint(-wrong_ans_error_range, wrong_ans_error_range),
+                                       b + randint(-wrong_ans_error_range, wrong_ans_error_range))})
     shuffle(choices)
     correct_choice_index = choices.index(correct_ans)
 
@@ -1053,8 +1046,9 @@ def q_simplify_linear(controller, question_index):
             ascii_lowercase), k=randint(3, 8))
         coeff_range = round(map_range(test_progress, 0, 1, 1000, 3000))
         max_terms_per_var = round(map_range(test_progress, 0, 1, 5, 12))
-    variable_coeffs = [[coeff * random_choice((-1, 1)) for coeff in random_sample(population=range(1, coeff_range), k=randint(
-        2, max_terms_per_var))] for _ in variables]
+    variable_coeffs = [
+        [coeff * random_choice((-1, 1)) for coeff in random_sample(population=range(1, coeff_range), k=randint(
+            2, max_terms_per_var))] for _ in variables]
     poly_q_terms = [PolyTerm(variable=variable, coeff=coeff, power=1) for (
         variable, coeffs) in zip(variables, variable_coeffs) for coeff in coeffs]
     shuffle(poly_q_terms)
@@ -1067,14 +1061,12 @@ def q_simplify_linear(controller, question_index):
     def make_wrong_ans():
         def map_term(term):
             wrong_range = (abs(term.coeff) // 2) + 10
-            return PolyTerm(variable=term.variable, coeff=term.coeff+randint(-wrong_range, wrong_range), power=term.power)
+            return PolyTerm(variable=term.variable, coeff=term.coeff + randint(-wrong_range, wrong_range),
+                            power=term.power)
+
         return poly_to_str([map_term(term) for term in poly_ans_terms])
-    choices = list(set([
-        correct_ans,
-        make_wrong_ans(),
-        make_wrong_ans(),
-        make_wrong_ans(),
-    ]))
+
+    choices = list({correct_ans, make_wrong_ans(), make_wrong_ans(), make_wrong_ans()})
     shuffle(choices)
     correct_choice_index = choices.index(correct_ans)
     question = f'Simplify %s' % (poly_q)
@@ -1084,15 +1076,15 @@ def q_simplify_linear(controller, question_index):
 def generate_pythag_triple_list():
     # https://stackoverflow.com/questions/575117/generating-unique-ordered-pythagorean-triplets
     def pythagore_triplets(n):
-        maxn = int(n*(2**0.5))+1
-        squares = [x*x for x in range(maxn+1)]
-        reverse_squares = dict([(squares[i], i) for i in range(maxn+1)])
+        maxn = int(n * (2 ** 0.5)) + 1
+        squares = [x * x for x in range(maxn + 1)]
+        reverse_squares = dict([(squares[i], i) for i in range(maxn + 1)])
         for x in range(1, n):
             x2 = squares[x]
-            for y in range(x, n+1):
+            for y in range(x, n + 1):
                 y2 = squares[y]
-                z = reverse_squares.get(x2+y2)
-                if z != None:
+                z = reverse_squares.get(x2 + y2)
+                if z is not None:
                     yield x, y, z
 
     return list(pythagore_triplets(2000))
@@ -1109,16 +1101,16 @@ def q_find_hypot(controller, question_index):
         upper_bound = round(map_range(test_progress, 0, 1, 15, 50))
     else:
         upper_bound = round(map_range(test_progress, 0, 1,
-                                      500, len(pythag_triple_list)-1))
+                                      500, len(pythag_triple_list) - 1))
     i = randint(0, upper_bound)
     a, b, c = pythag_triple_list[i]
     unit = random_choice(units)
     question = f'What is the length of the hypotenuse in a right angled triangle with non-hypotenuse sides of length {a}{unit} and {b}{unit}?'
-    d, e, f = pythag_triple_list[1 if i == 0 else i-1]
+    d, e, f = pythag_triple_list[1 if i == 0 else i - 1]
     choices = list(
-        map(str, set((str(c)+unit, str(d)+unit, str(e)+unit, str(f)+unit))))
+        map(str, {str(c) + unit, str(d) + unit, str(e) + unit, str(f) + unit}))
     shuffle(choices)
-    correct_choice_index = choices.index(str(c)+unit)
+    correct_choice_index = choices.index(str(c) + unit)
     return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
 
@@ -1128,122 +1120,126 @@ def q_general_geometry(controller, question_index):
 
     def rand_progressive(min_upper, max_upper):
         difficulty_factor = 1 if difficulty == TestDifficultySetting.NORMAL else 100
-        return randint(min_upper, round(map_range(test_progress, 0, 1, min_upper + (max_upper-min_upper)/5, max_upper * difficulty_factor)))
+        return randint(min_upper, round(
+            map_range(test_progress, 0, 1, min_upper + (max_upper - min_upper) / 5, max_upper * difficulty_factor)))
 
     def circle_area_from_radius(unit):
         radius = rand_progressive(5, 100)
-        return (f'What is the area of a circle with radius {radius}{unit}', pi * radius**2)
+        return f'What is the area of a circle with radius {radius}{unit}', pi * radius ** 2
 
     def circle_area_from_diameter(unit):
         diameter = rand_progressive(5, 200)
-        return (f'What is the area of a circle with diameter {diameter}{unit}', pi * (diameter/2)**2)
+        return f'What is the area of a circle with diameter {diameter}{unit}', pi * (diameter / 2) ** 2
 
     def circle_area_from_circumference(unit):
         circumference = rand_progressive(5, 600)
-        radius = circumference/2/pi
-        return (f'What is the area of a circle with circumference {circumference}{unit}', pi * radius**2)
+        radius = circumference / 2 / pi
+        return f'What is the area of a circle with circumference {circumference}{unit}', pi * radius ** 2
 
     def circle_circumference_from_radius(unit):
         radius = rand_progressive(5, 100)
-        return (f'What is the circumference of a circle with radius {radius}{unit}', 2*pi*radius)
+        return f'What is the circumference of a circle with radius {radius}{unit}', 2 * pi * radius
 
     def circle_circumference_from_diameter(unit):
         diameter = rand_progressive(5, 200)
-        return (f'What is the circumference of a circle with diameter {diameter}{unit}', 2*pi*(diameter/2))
+        return f'What is the circumference of a circle with diameter {diameter}{unit}', 2 * pi * (diameter / 2)
 
     def circle_circumference_from_area(unit):
         area = rand_progressive(5, 10000)
-        radius = sqrt(area/pi)
-        return (f'What is the circumference of a circle with area {area}{unit}', 2*pi*radius)
+        radius = sqrt(area / pi)
+        return f'What is the circumference of a circle with area {area}{unit}', 2 * pi * radius
 
     def circle_radius_from_diameter(unit):
         diameter = rand_progressive(5, 200)
-        return (f'What is the radius of a circle with diameter {diameter}{unit}', diameter/2)
+        return f'What is the radius of a circle with diameter {diameter}{unit}', diameter / 2
 
     def circle_radius_from_circumference(unit):
         circumference = rand_progressive(5, 600)
-        return (f'What is the radius of a circle with circumference {circumference}{unit}', circumference/2/pi)
+        return f'What is the radius of a circle with circumference {circumference}{unit}', circumference / 2 / pi
 
     def circle_radius_from_area(unit):
         area = rand_progressive(5, 10000)
-        return (f'What is the radius of a circle with area {area}{unit}', sqrt(area/pi))
+        return f'What is the radius of a circle with area {area}{unit}', sqrt(area / pi)
 
     def circle_diameter_from_radius(unit):
         radius = rand_progressive(5, 100)
-        return (f'What is the diameter of a circle with radius {radius}{unit}', radius*2)
+        return f'What is the diameter of a circle with radius {radius}{unit}', radius * 2
 
     def circle_diameter_from_circumference(unit):
         circumference = rand_progressive(5, 600)
-        return (f'What is the diameter of a circle with circumference {circumference}{unit}', circumference/pi)
+        return f'What is the diameter of a circle with circumference {circumference}{unit}', circumference / pi
 
     def circle_diameter_from_area(unit):
         area = rand_progressive(5, 10000)
-        return (f'What is the diameter of a circle with area {area}{unit}', sqrt(area/pi)*2)
+        return f'What is the diameter of a circle with area {area}{unit}', sqrt(area / pi) * 2
 
     def square_perimeter_from_side_length(unit):
         side_length = rand_progressive(5, 100)
-        return (f'What is the perimeter of a square with side length {side_length}{unit}', side_length * 4)
+        return f'What is the perimeter of a square with side length {side_length}{unit}', side_length * 4
 
     def square_perimeter_from_area(unit):
         area = rand_progressive(5, 10000)
-        return (f'What is the perimeter of a square with area {area}{unit}', sqrt(area)*4)
+        return f'What is the perimeter of a square with area {area}{unit}', sqrt(area) * 4
 
     def square_side_length_from_perimeter(unit):
         perimeter = rand_progressive(5, 400)
-        return (f'What is the side length of a square with perimeter {perimeter}{unit}', perimeter/4)
+        return f'What is the side length of a square with perimeter {perimeter}{unit}', perimeter / 4
 
     def square_side_length_from_area(unit):
         area = rand_progressive(5, 100000)
-        return (f'What is the side length of a square with area {area}{unit}', sqrt(area))
+        return f'What is the side length of a square with area {area}{unit}', sqrt(area)
 
     def square_area_from_side_length(unit):
         side_length = rand_progressive(5, 100)
-        return (f'What is the area of a square with side length {side_length}{unit}', side_length**2)
+        return f'What is the area of a square with side length {side_length}{unit}', side_length ** 2
 
     def square_area_from_perimeter(unit):
         perimeter = rand_progressive(5, 400)
-        return (f'What is the area of a square with perimeter {perimeter}{unit}', (perimeter/4)**2)
+        return f'What is the area of a square with perimeter {perimeter}{unit}', (perimeter / 4) ** 2
 
     def rectangle_area_from_side_lengths(unit):
         a = rand_progressive(5, 100)
         b = rand_progressive(5, 100)
-        return (f'What is the area of a rectangle with side lengths {a}{unit} and {b}{unit}', a*b)
+        return f'What is the area of a rectangle with side lengths {a}{unit} and {b}{unit}', a * b
 
     def rectangle_perimeter_from_side_lengths(unit):
         a = rand_progressive(5, 100)
         b = rand_progressive(5, 100)
-        return (f'What is the perimeter of a rectangle with side lengths {a}{unit} and {b}{unit}', 2*(a+b))
+        return f'What is the perimeter of a rectangle with side lengths {a}{unit} and {b}{unit}', 2 * (a + b)
 
     def triangle_area_from_base_height(unit):
         base = rand_progressive(5, 100)
         height = rand_progressive(5, 100)
-        return (f'What is the area of a triangle with base {base}{unit} and height {height}{unit}', base*height/2)
+        return f'What is the area of a triangle with base {base}{unit} and height {height}{unit}', base * height / 2
 
     def trapezoid_area_from_top_bottom_height(unit):
         top = rand_progressive(5, 100)
         bottom = rand_progressive(5, 100)
         height = rand_progressive(5, 100)
-        return (f'What is the area of a trapezoid with bottom side {bottom}{unit}, top side {top}{unit} and height {height}{unit}', (bottom+top)/2*height)
+        return f'What is the area of a trapezoid with bottom side {bottom}{unit}, top side {top}{unit} and height {height}{unit}', (
+                bottom + top) / 2 * height
 
     def rhombus_area_from_diagonals(unit):
         p = rand_progressive(5, 100)
         q = rand_progressive(5, 100)
-        return (f'What is the area of a rhombus with diagonals {p}{unit} and {q}{unit}', p*q/2)
+        return f'What is the area of a rhombus with diagonals {p}{unit} and {q}{unit}', p * q / 2
 
     def kite_area_from_diagonals(unit):
         p = rand_progressive(5, 100)
         q = rand_progressive(5, 100)
-        return (f'What is the area of a kite with diagonals {p}{unit} and {q}{unit}', p*q/2)
+        return f'What is the area of a kite with diagonals {p}{unit} and {q}{unit}', p * q / 2
 
     def hypot_from_ab(unit):
         a = rand_progressive(5, 100)
         b = rand_progressive(5, 100)
-        return (f'What is the length of the hypotenuse in a right angled triangle with non-hypotenuse sides of length {a}{unit} and {b}{unit}', sqrt(a**2+b**2))
+        return f'What is the length of the hypotenuse in a right angled triangle with non-hypotenuse sides of length {a}{unit} and {b}{unit}', sqrt(
+            a ** 2 + b ** 2)
 
     def b_from_hypot_a(unit):
         a = rand_progressive(5, 100)
-        hypot = rand_progressive(a+1, a*2)
-        return (f'What is the length of the other non-hypotenuse side in a right angled triangle with hypotenuse of length {hypot}{unit} and non-hypotenuse side of length {a}{unit}', sqrt(hypot**2-a**2))
+        hypot = rand_progressive(a + 1, a * 2)
+        return f'What is the length of the other non-hypotenuse side in a right angled triangle with hypotenuse of length {hypot}{unit} and non-hypotenuse side of length {a}{unit}', sqrt(
+            hypot ** 2 - a ** 2)
 
     q_factories = [
         circle_area_from_radius,
@@ -1281,7 +1277,7 @@ def q_general_geometry(controller, question_index):
 
     # https://stackoverflow.com/questions/20457038/how-to-round-to-2-decimals-with-python
     def roundTraditional(val, digits):
-        return round(val+10**(-len(str(val))-1), digits)
+        return round(val + 10 ** (-len(str(val)) - 1), digits)
 
     correct_ans = float(roundTraditional(exact_ans, dp))
     question += f' to the nearest {unit.lstrip().rstrip("s")}?' if dp == 0 else f' to {dp} decimal place{"" if dp == 1 else "s"}?'
@@ -1323,9 +1319,9 @@ def q_general_geometry(controller, question_index):
         if len(fake_answers) == 3:
             break
 
-    choices = [num_to_str(num)+unit for num in ([correct_ans] + fake_answers)]
+    choices = [num_to_str(num) + unit for num in ([correct_ans] + fake_answers)]
     shuffle(choices)
-    correct_choice_index = choices.index(num_to_str(correct_ans)+unit)
+    correct_choice_index = choices.index(num_to_str(correct_ans) + unit)
 
     return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
 
@@ -1380,7 +1376,7 @@ def FinishScreen(controller):
     test = controller.state.test
     questions_count = session.settings.question_count
     questions_right = sum(1 if question.answer_state.type ==
-                          TestQuestionAnswerStateType.ANSWERED_CORRECT else 0 for question in test.questions)
+                               TestQuestionAnswerStateType.ANSWERED_CORRECT else 0 for question in test.questions)
 
     start_time = test.start_time
     current_time = get_cur_time()
@@ -1396,7 +1392,7 @@ def FinishScreen(controller):
             test=Test(
                 start_time=test.start_time,
                 questions=test.questions,
-                question_index=len(test.questions)-1
+                question_index=len(test.questions) - 1
             )
         )
         controller.set_state(new_state)
@@ -1452,7 +1448,8 @@ def FinishScreen(controller):
     def on_retry_incorrect_questions_click():
         def map_question(question):
             if question.answer_state.type == TestQuestionAnswerStateType.ANSWERED_INCORRECT:
-                return TestQuestion(question_component=question.question_component, answer_state=TestQuestionAnswerStateNotAnswered())
+                return TestQuestion(question_component=question.question_component,
+                                    answer_state=TestQuestionAnswerStateNotAnswered())
             return question
 
         for i, question in enumerate(test.questions):
@@ -1555,7 +1552,7 @@ def PlayingScreen(controller):
             test=Test(
                 start_time=test.start_time,
                 questions=test.questions,
-                question_index=test.question_index-1
+                question_index=test.question_index - 1
             )
         )
         controller.set_state(new_state)
@@ -1566,7 +1563,7 @@ def PlayingScreen(controller):
             test=Test(
                 start_time=test.start_time,
                 questions=test.questions,
-                question_index=test.question_index+1
+                question_index=test.question_index + 1
             )
         )
         controller.set_state(new_state)
@@ -1608,11 +1605,11 @@ def PlayingScreen(controller):
     def _toolbar_on_key_down(_):
         current_question_component.refocus()
 
-    question_label_text = 'Q%s.' % (question_index+1)
+    question_label_text = 'Q%s.' % (question_index + 1)
     toolbar_content = Box(
         VSplit(
             children=[Label(text=question_label_text, dont_extend_height=True, width=len(
-                question_label_text)+3)] + buttons,
+                question_label_text) + 3)] + buttons,
             align=HorizontalAlign.CENTER,
             key_bindings=toolbar_keybindings
         ),
