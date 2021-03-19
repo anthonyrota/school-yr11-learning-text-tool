@@ -843,14 +843,16 @@ def q_bodmas(controller, question_index):
         new_value = dividend_value // divisor
         return new_str, new_value, new_value >= 0
 
+    superscript = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+
     def power_op(base):
         (base_str, base_value, _) = base
         if base_value < 0 or base_value > 20:
             return None
         exponent = randint(1, 5 if base_value <=
                                    2 else 3 if base_value <= 4 else 2)
-        new_str = '%s^%s' % (
-            base_str if base_str.isdigit() else add_parens(base_str), exponent)
+        new_str = '%s%s' % (
+            base_str if base_str.isdigit() else add_parens(base_str), str(exponent).translate(superscript))
         new_value = base_value ** exponent
         return new_str, new_value, False
 
@@ -971,7 +973,7 @@ def q_factorise_quadratic(controller, question_index):
     x2_coeff = k
     x1_coeff = k * (a + b)
     x0_coeff = k * (a * b)
-    poly = ('' if x2_coeff == 1 else str(x2_coeff)) + 'x^2'
+    poly = ('' if x2_coeff == 1 else str(x2_coeff)) + 'x²'
     if x1_coeff != 0:
         poly += (' + ' if x1_coeff > 0 else ' - ') + \
                 ('' if abs(x1_coeff) == 1 else str(abs(x1_coeff))) + 'x'
@@ -988,7 +990,7 @@ def q_factorise_quadratic(controller, question_index):
         a_term = make_term(a)
         b_term = make_term(b)
         return str('' if k == 1 else str(k)) + (
-            a_term + '^2' if a_term == b_term else b_term + a_term if b_term == 'x' else a_term + b_term)
+            a_term + '²' if a_term == b_term else b_term + a_term if b_term == 'x' else a_term + b_term)
 
     correct_ans = make_factored_poly(a, b)
     wrong_ans_error_range = (abs(a) + abs(b)) // 2 + 4
