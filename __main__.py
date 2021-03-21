@@ -1313,8 +1313,10 @@ def q_general_geometry(controller, question_index):
         if correct_ans.is_integer():
             fake_answer = randint(fake_answer_min, fake_answer_max)
         else:
+            rounded_correct_ans = num_to_str(correct_ans)
+            num_zeros = len(rounded_correct_ans) - len(rounded_correct_ans.rstrip('0'))
             fake_answer = roundTraditional(
-                randfloat(fake_answer_min, fake_answer_max), dp)
+                randfloat(fake_answer_min, fake_answer_max), dp - num_zeros)
         if fake_answer == correct_ans or fake_answer in fake_answers:
             continue
         fake_answers.append(fake_answer)
