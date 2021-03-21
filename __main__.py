@@ -806,7 +806,7 @@ def q_bodmas(controller, question_index):
     def addition_op(lhs, rhs):
         (lhs_str, lhs_value, _) = lhs
         (rhs_str, rhs_value, _) = rhs
-        new_str = '%s + %s' % (lhs_str, rhs_str)
+        new_str = '%s + %s' % (lhs_str, add_parens(rhs_str) if rhs_str[0] == '-' else rhs_str)
         new_value = lhs_value + rhs_value
         return new_str, new_value, False
 
@@ -821,7 +821,7 @@ def q_bodmas(controller, question_index):
     def multiplication_op(lhs, rhs):
         (lhs_str, lhs_value, is_lhs_grouped) = lhs
         (rhs_str, rhs_value, is_rhs_grouped) = rhs
-        new_str = '%s * %s' % (lhs_str if is_lhs_grouped else add_parens(
+        new_str = '%s × %s' % (lhs_str if is_lhs_grouped else add_parens(
             lhs_str), rhs_str if is_rhs_grouped else add_parens(rhs_str))
         new_value = lhs_value * rhs_value
         return new_str, new_value, new_value >= 0
@@ -838,7 +838,7 @@ def q_bodmas(controller, question_index):
         else:
             dividend_factors = factors(abs(dividend_value))
             divisor = random_choice(list(dividend_factors))
-        new_str = '%s / %s' % (
+        new_str = '%s ÷ %s' % (
             dividend_str if is_dividend_grouped else add_parens(dividend_str), divisor)
         new_value = dividend_value // divisor
         return new_str, new_value, new_value >= 0
