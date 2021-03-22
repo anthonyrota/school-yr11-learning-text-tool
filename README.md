@@ -50,10 +50,6 @@ of programming principles
 - [ ] Demonstration of a range of data types
 - [ ] A minimum of 20 questions programed
 
-*For 18-25 Marks:*
-- [ ] High quality code that meets the functionality/code design requirements.
-      Well written, efficient, clean code with no bugs or errors present.
-
 #### Inputs / Outputs
 
 - [ ] Appropriate use of input data types
@@ -61,8 +57,9 @@ of programming principles
 - [ ] An option is given to students to retry questions
 - [ ] A score is displayed to students
 
-*For 8-10 Marks:*
-- [ ] High quality educational tool, that also incorporates all dot points.
+*For 18-25 Marks:*
+- [ ] High quality code that meets the functionality/code design requirements.
+      Well written, efficient, clean code with no bugs or errors present.
 
 ### Target Audience
 
@@ -71,6 +68,9 @@ of programming principles
 - [ ] The range of questions & question types is varied
 - [ ] Question difficulty increases as progression is made
 - [ ] Helpful feedback is given to the students throughout
+
+*For 8-10 Marks:*
+- [ ] High quality educational tool, that also incorporates all dot points.
 
 ### Python Code Readability & Commenting
 
