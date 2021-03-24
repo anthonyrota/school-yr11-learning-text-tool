@@ -24,7 +24,8 @@ The subject areas which can be covered are:
 - [ ] The question difficulty increases as the user progresses
 - [ ] Text-based only, written in Python
 - [ ] Includes a scoring system
-- [ ] See below marking criteria for further information
+
+See below marking criteria for further information
 
 ### Documentation
 
@@ -41,7 +42,7 @@ The subject areas which can be covered are:
 
 - [ ] Code structure demonstrates an understanding
 of programming principles
-- [ ] Use of the following:
+- Use of the following:
 - - [ ] Decisions
 - - [ ] Loops
 - - [ ] Data Structures (Lists, arrays, etc)
