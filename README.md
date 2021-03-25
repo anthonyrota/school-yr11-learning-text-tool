@@ -9,7 +9,7 @@ the educational tool is crucial to convince a future employer that you are worth
 In this task, you are to create an educational tool to assist students in years 7 - 8.
 The subject areas which can be covered are:
 
-- [ ] Maths
+- [x] Maths
 - [ ] Geography
 - [ ] History
 - [ ] Science
@@ -18,12 +18,12 @@ The subject areas which can be covered are:
 
 - [ ] Introduction and information about the tool
 - [ ] Instructions on how to use the tool
-- [ ] User input with correct outputs and feedback
+- [x] User input with correct outputs and feedback
 - [ ] Give students information about upcoming sections/questions
-- [ ] The educational tool has a minimum of 20 questions
-- [ ] The question difficulty increases as the user progresses
-- [ ] Text-based only, written in Python
-- [ ] Includes a scoring system
+- [x] The educational tool has a minimum of 20 questions
+- [x] The question difficulty increases as the user progresses
+- [x] Text-based only, written in Python
+- [x] Includes a scoring system
 
 See below marking criteria for further information
 
@@ -40,23 +40,23 @@ See below marking criteria for further information
 
 #### Code Design
 
-- [ ] Code structure demonstrates an understanding
+- [x] Code structure demonstrates an understanding
 of programming principles
 - Use of the following:
-- - [ ] Decisions
-- - [ ] Loops
-- - [ ] Data Structures (Lists, arrays, etc)
-- [ ] Good use of functions
-- [ ] Good use of variables
-- [ ] Demonstration of a range of data types
-- [ ] A minimum of 20 questions programed
+- - [x] Decisions
+- - [x] Loops
+- - [x] Data Structures (Lists, arrays, etc)
+- [x] Good use of functions
+- [x] Good use of variables
+- [x] Demonstration of a range of data types
+- [x] A minimum of 20 questions programed
 
 #### Inputs / Outputs
 
-- [ ] Appropriate use of input data types
-- [ ] Code checks the input and gives the correct output
-- [ ] An option is given to students to retry questions
-- [ ] A score is displayed to students
+- [x] Appropriate use of input data types
+- [x] Code checks the input and gives the correct output
+- [x] An option is given to students to retry questions
+- [x] A score is displayed to students
 
 *For 18-25 Marks:*
 - [ ] High quality code that meets the functionality/code design requirements.
@@ -64,14 +64,14 @@ of programming principles
 
 ### Target Audience
 
-- [ ] The tool is suitable for students in years 7 - 8
-- [ ] Content & questions are relevant to the subject area chosen
-- [ ] The range of questions & question types is varied
-- [ ] Question difficulty increases as progression is made
-- [ ] Helpful feedback is given to the students throughout
+- [x] The tool is suitable for students in years 7 - 8
+- [x] Content & questions are relevant to the subject area chosen
+- [x] The range of questions & question types is varied
+- [x] Question difficulty increases as progression is made
+- [x] Helpful feedback is given to the students throughout
 
 *For 8-10 Marks:*
-- [ ] High quality educational tool, that also incorporates all dot points.
+- [x] High quality educational tool, that also incorporates all dot points.
 
 ### Python Code Readability & Commenting
 
