@@ -253,7 +253,8 @@ def SetUsernameScreen(controller):
             username=username,
             settings=TestSettings(
                 difficulty=TestDifficultySetting.NORMAL,
-                content={TestContentArea.NUMBER_THEORY, TestContentArea.ALGEBRA, TestContentArea.GEOMETRY},
+                content={TestContentArea.NUMBER_THEORY,
+                         TestContentArea.ALGEBRA, TestContentArea.GEOMETRY},
                 question_count=TestQuestionCountSetting.NORMAL
             )
         )
@@ -806,7 +807,8 @@ def q_bodmas(controller, question_index):
     def addition_op(lhs, rhs):
         (lhs_str, lhs_value, _) = lhs
         (rhs_str, rhs_value, _) = rhs
-        new_str = '%s + %s' % (lhs_str, add_parens(rhs_str) if rhs_str[0] == '-' else rhs_str)
+        new_str = '%s + %s' % (lhs_str, add_parens(rhs_str)
+                               if rhs_str[0] == '-' else rhs_str)
         new_value = lhs_value + rhs_value
         return new_str, new_value, False
 
@@ -824,7 +826,7 @@ def q_bodmas(controller, question_index):
         new_str = '%s × %s' % (lhs_str if is_lhs_grouped else add_parens(
             lhs_str), rhs_str if is_rhs_grouped else add_parens(rhs_str))
         new_value = lhs_value * rhs_value
-        return new_str, new_value, new_value >= 0
+        return new_str, new_value, True
 
     # https://stackoverflow.com/questions/6800193/what-is-the-most-efficient-way-of-finding-all-the-factors-of-a-number-in-python
     def factors(n):
@@ -841,7 +843,7 @@ def q_bodmas(controller, question_index):
         new_str = '%s ÷ %s' % (
             dividend_str if is_dividend_grouped else add_parens(dividend_str), divisor)
         new_value = dividend_value // divisor
-        return new_str, new_value, new_value >= 0
+        return new_str, new_value, True
 
     superscript = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
 
@@ -850,11 +852,11 @@ def q_bodmas(controller, question_index):
         if base_value < 0 or base_value > 20:
             return None
         exponent = randint(1, 5 if base_value <=
-                                   2 else 3 if base_value <= 4 else 2)
+                           2 else 3 if base_value <= 4 else 2)
         new_str = '%s%s' % (
             base_str if base_str.isdigit() else add_parens(base_str), str(exponent).translate(superscript))
         new_value = base_value ** exponent
-        return new_str, new_value, False
+        return new_str, new_value, True
 
     def negate_op(expr):
         (expr_str, expr_value, is_expr_grouped) = expr
@@ -889,7 +891,7 @@ def q_bodmas(controller, question_index):
             map_range(test_progress, 0, 1, 0, 4))
         iterations = randint(2 + difficulty_progression_factor,
                              4 + difficulty_progression_factor)
-    elif difficulty == TestDifficultySetting.HARD:
+    else:
         difficulty_progression_factor = round(
             map_range(test_progress, 0, 1, 0, 15))
         iterations = randint(5 + difficulty_progression_factor,
@@ -940,7 +942,7 @@ def q_bodmas(controller, question_index):
             ex_correct_ans=str(expr_value)
         )
 
-    fake_answer_range = (abs(expr_value) + 15)
+    fake_answer_range = abs(expr_value) + 15
     fake_answers = []
     while True:
         fake_answer = randint(-fake_answer_range, fake_answer_range)
@@ -1068,7 +1070,8 @@ def q_simplify_linear(controller, question_index):
 
         return poly_to_str([map_term(term) for term in poly_ans_terms])
 
-    choices = list({correct_ans, make_wrong_ans(), make_wrong_ans(), make_wrong_ans()})
+    choices = list({correct_ans, make_wrong_ans(),
+                    make_wrong_ans(), make_wrong_ans()})
     shuffle(choices)
     correct_choice_index = choices.index(correct_ans)
     question = f'Simplify %s' % (poly_q)
@@ -1219,7 +1222,7 @@ def q_general_geometry(controller, question_index):
         bottom = rand_progressive(5, 100)
         height = rand_progressive(5, 100)
         return f'What is the area of a trapezoid with bottom side {bottom}{unit}, top side {top}{unit} and height {height}{unit}', (
-                bottom + top) / 2 * height
+            bottom + top) / 2 * height
 
     def rhombus_area_from_diagonals(unit):
         p = rand_progressive(5, 100)
@@ -1314,7 +1317,8 @@ def q_general_geometry(controller, question_index):
             fake_answer = randint(fake_answer_min, fake_answer_max)
         else:
             rounded_correct_ans = num_to_str(correct_ans)
-            num_zeros = len(rounded_correct_ans) - len(rounded_correct_ans.rstrip('0'))
+            num_zeros = len(rounded_correct_ans) - \
+                len(rounded_correct_ans.rstrip('0'))
             fake_answer = roundTraditional(
                 randfloat(fake_answer_min, fake_answer_max), dp - num_zeros)
         if fake_answer == correct_ans or fake_answer in fake_answers:
@@ -1323,7 +1327,8 @@ def q_general_geometry(controller, question_index):
         if len(fake_answers) == 3:
             break
 
-    choices = [num_to_str(num) + unit for num in ([correct_ans] + fake_answers)]
+    choices = [num_to_str(
+        num) + unit for num in ([correct_ans] + fake_answers)]
     shuffle(choices)
     correct_choice_index = choices.index(num_to_str(correct_ans) + unit)
 
@@ -1380,7 +1385,7 @@ def FinishScreen(controller):
     test = controller.state.test
     questions_count = session.settings.question_count
     questions_right = sum(1 if question.answer_state.type ==
-                               TestQuestionAnswerStateType.ANSWERED_CORRECT else 0 for question in test.questions)
+                          TestQuestionAnswerStateType.ANSWERED_CORRECT else 0 for question in test.questions)
 
     start_time = test.start_time
     current_time = get_cur_time()
