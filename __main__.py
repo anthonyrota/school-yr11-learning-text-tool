@@ -905,32 +905,35 @@ def q_bodmas(controller, question_index):
             number >= 0
         )
 
-    expr = get_random_number_expr()
-    previous_op = None
+    def get_q_expr():
+        expr = get_random_number_expr()
+        previous_op = None
 
-    while iterations > 0:
-        if randint(0, 1) == 0:
-            op = random_choice(multi_ops)
-            if op == previous_op:
-                continue
-            random_expr = get_random_number_expr()
+        nonlocal iterations
+        while iterations > 0:
             if randint(0, 1) == 0:
-                new_expr = op(expr, random_expr)
+                op = random_choice(multi_ops)
+                if op == previous_op:
+                    continue
+                random_expr = get_random_number_expr()
+                if randint(0, 1) == 0:
+                    new_expr = op(expr, random_expr)
+                else:
+                    new_expr = op(random_expr, expr)
             else:
-                new_expr = op(random_expr, expr)
-        else:
-            op = random_choice(single_ops)
-            if op == previous_op:
+                op = random_choice(single_ops)
+                if op == previous_op:
+                    continue
+                new_expr = op(expr)
+            if new_expr is None:
                 continue
-            new_expr = op(expr)
-        if new_expr is None:
-            continue
-        previous_op = op
-        expr = new_expr
-        iterations -= 1
+            previous_op = op
+            expr = new_expr
+            iterations -= 1
 
-    (expr_str, expr_value, _) = expr
+        return expr
 
+    (expr_str, expr_value, _) = get_q_expr()
     question = 'Evaluate %s' % (expr_str)
 
     if randint(0, 1) == 0:

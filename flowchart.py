@@ -386,71 +386,78 @@ def q_bodmas_subr():
             .connect(EndNode('END get_random_number_expr'))
         return begin
 
+    def get_q_expr_subr():
+        begin = StartNode('BEGIN get_q_expr')
+        subr = begin \
+            .connect(SubroutineNode('expr = get_random_number_expr()')) \
+            .connect(OperationNode('previous_op = None'))
+        while_cond = subr.connect(ConditionNode('IF iterations > 0'))
+        out_cond = while_cond.connect_yes(
+            ConditionNode('IF randint from 0-1 == 0'), 'bottom')
+        cond = out_cond \
+            .connect_yes(OperationNode('op = choose random op from multi_ops'), 'right') \
+            .connect(ConditionNode('IF op == previous_op'))
+        cond.connect_yes(while_cond, 'left')
+        loop_tail = ConditionNode('IF new_expr is None')
+        loop_tail.connect_yes(while_cond, 'left')
+        loop_tail \
+            .connect_no(OperationNode('previous_op = op'), 'bottom') \
+            .connect(OperationNode('expr = new_expr')) \
+            .connect(OperationNode('iterations -= 1').set_connect_direction('left')) \
+            .connect(while_cond)
+        cond = cond \
+            .connect_no(SubroutineNode('random_expr = get_random_number_expr()'), 'bottom') \
+            .connect(ConditionNode('IF randint from 0-1 == 0'))
+        cond \
+            .connect_yes(OperationNode('new_expr = op(expr, random_expr)')) \
+            .connect(loop_tail)
+        cond \
+            .connect_no(OperationNode('new_expr = op(random_expr, expr)')) \
+            .connect(loop_tail)
+        cond = out_cond \
+            .connect_no(OperationNode('op = random_choice(single_ops)'), 'bottom') \
+            .connect(ConditionNode('IF op == previous_op'))
+        cond.connect_yes(while_cond, 'left')
+        cond \
+            .connect_no(OperationNode('new_expr = op(expr)'), 'bottom') \
+            .connect(loop_tail)
+        while_cond \
+            .connect_no(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN expr'), 'left') \
+            .connect(EndNode('END get_q_expr'))
+        return begin
+
     cond = begin \
         .connect(OperationNode('multi_ops = [addition_op, subtraction_op, multiplication_op]')) \
         .connect(OperationNode('single_ops = [division_op, power_op, negate_op, parens_op]')) \
         .connect(SubroutineNode('test_progress = get_test_progress(controller, question_index)')) \
         .connect(ConditionNode('IF difficulty is normal'))
     yes = cond.connect_yes(SubroutineNode(
-        'difficulty_progression_factor = round result of map_range(test_progress, 0, 1, 0, 4)'))
-    yes.connect(OperationNode(
-        'iterations = randint from (2+difficulty_progression_factor) to (4+difficulty_progression_factor)'))
+        'difficulty_progression_factor = round result of map_range(test_progress, 0, 1, 0, 4)')).connect(OperationNode(
+            'iterations = randint from (2+difficulty_progression_factor) to (4+difficulty_progression_factor)'))
     no = cond.connect_no(SubroutineNode(
-        'difficulty_progression_factor = round result of map_range(test_progress, 0, 1, 0, 15)'))
-    no.connect(OperationNode(
-        'iterations = randint from (5+difficulty_progression_factor) to (10+difficulty_progression_factor)'))
-    subr = SubroutineNode('expr = get_random_number_expr()') \
-        .connect(OperationNode('previous_op = None'))
+        'difficulty_progression_factor = round result of map_range(test_progress, 0, 1, 0, 15)'), 'left').connect(OperationNode(
+            'iterations = randint from (5+difficulty_progression_factor) to (10+difficulty_progression_factor)'))
+    subr = SubroutineNode('(expr_str, expr_value, _) = get_q_expr()')
     yes.connect(subr)
     no.connect(subr)
-    while_cond = subr.connect(ConditionNode('IF iterations > 0'))
-    out_cond = while_cond.connect_yes(
-        ConditionNode('IF randint from 0-1 == 0'))
-    cond = out_cond \
-        .connect_yes(OperationNode('op = choose random op from multi_ops')) \
-        .connect(ConditionNode('IF op == previous_op'))
-    cond.connect_yes(while_cond)
-    loop_tail = OperationNode('previous_op = op')
-    loop_tail_cond = loop_tail.connect(ConditionNode('IF new_expr is None'))
-    loop_tail_cond.connect_yes(while_cond)
-    loop_tail_cond \
-        .connect_no(OperationNode('expr = new_expr')) \
-        .connect(OperationNode('iterations -= 1')) \
-        .connect(while_cond)
-    cond = cond \
-        .connect_no(SubroutineNode('random_expr = get_random_number_expr()')) \
+    cond = subr \
+        .connect(OperationNode('question = concatenate "Evaluate ", expr_str')) \
         .connect(ConditionNode('IF randint from 0-1 == 0'))
     cond \
-        .connect_yes(OperationNode('new_expr = op(expr, random_expr)')) \
-        .connect(loop_tail)
-    cond \
-        .connect_no(OperationNode('new_expr = op(random_expr, expr)')) \
-        .connect(loop_tail)
-    cond = out_cond \
-        .connect_no(OperationNode('op = random_choice(single_ops)')) \
-        .connect(ConditionNode('IF op == previous_op'))
-    cond.connect_yes(while_cond)
-    cond \
-        .connect_no(OperationNode('new_expr = op(expr)')) \
-        .connect(loop_tail)
-    cond = while_cond \
-        .connect_no(OperationNode('question = concatenate "Evaluate ", expr_str')) \
-        .connect(ConditionNode('IF randint from 0-1 == 0'))
-    cond \
-        .connect_yes(OperationNode('is_ans_correct = lambda ans: ans == expr_value as string')) \
+        .connect_yes(OperationNode('is_ans_correct = lambda ans: ans == expr_value as string'), 'right') \
         .connect(OperationNode('component = InputQuestion(controller, question, get_integer_error_msg, is_ans_correct, expr_value as string)')) \
         .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN component'))
     while_anchor = cond \
-        .connect_no(OperationNode('fake_answer_range = (expr_value but positive) + 15')) \
+        .connect_no(OperationNode('fake_answer_range = (expr_value but positive) + 15'), 'bottom') \
         .connect(OperationNode('fake_answers = []')) \
         .connect(OperationNode('fake_answer = randint from -fake_answer_range to fake_answer_range'))
     cond = while_anchor.connect(ConditionNode(
         'IF fake_answer == expr_value or fake_answer in fake_answers'))
-    cond.connect_yes(while_anchor)
+    cond.connect_yes(while_anchor, 'left')
     cond = cond \
-        .connect_no(OperationNode('add fake_answer to fake_answers')) \
+        .connect_no(OperationNode('add fake_answer to fake_answers'), 'bottom') \
         .connect(ConditionNode('IF fake_answers length == 3'))
-    cond.connect_no(while_anchor)
+    cond.connect_no(while_anchor, 'left')
     cond \
         .connect_yes(OperationNode('choices = list with str(expr_value) concatenated with fake_answers')) \
         .connect(OperationNode('shuffle choices')) \
@@ -469,7 +476,8 @@ def q_bodmas_subr():
         power_op_subr(),
         negate_op_subr(),
         parens_op_subr(),
-        get_random_number_expr_subr()
+        get_random_number_expr_subr(),
+        get_q_expr_subr()
     ]
 
 
