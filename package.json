@@ -1,11 +1,14 @@
 {
     "name": "school-yr11-learning-text-tool",
     "scripts": {
-        "fc": "rimraf fc_img && python3 flowchart.py | node flowchart.js"
+        "fc": "rimraf fc_img && python3 flowchart.py | node flowchart.js",
+        "postinstall": "cp vendor/diagrams-flowchart.js node_modules/diagrams/src/vendors/flowchart.js && cp vendor/diagrams-index.html node_modules/diagrams/src/flowchart/index.html"
     },
     "devDependencies": {
         "diagrams": "0.11.0",
+        "p-limit": "3.1.0",
         "pdfkit": "0.11.0",
+        "progress": "2.0.3",
         "rimraf": "3.0.2"
     }
 }

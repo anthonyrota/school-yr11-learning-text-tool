@@ -1112,8 +1112,8 @@ def q_find_hypot(controller, question_index):
     unit = random_choice(units)
     question = f'What is the length of the hypotenuse in a right angled triangle with non-hypotenuse sides of length {a}{unit} and {b}{unit}?'
     d, e, f = pythag_triple_list[1 if i == 0 else i - 1]
-    choices = list(
-        map(str, {str(c) + unit, str(d) + unit, str(e) + unit, str(f) + unit}))
+    choices = list({str(c) + unit, str(d) + unit,
+                    str(e) + unit, str(f) + unit})
     shuffle(choices)
     correct_choice_index = choices.index(str(c) + unit)
     return MultipleChoiceQuestion(controller, question, choices, correct_choice_index)
@@ -1337,7 +1337,6 @@ def q_general_geometry(controller, question_index):
 
 def make_questions(controller):
     settings = controller.state.session.settings
-    difficulty = settings.difficulty
     content = settings.content
     question_count = settings.question_count
 

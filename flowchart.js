@@ -4,7 +4,8 @@ const stdin = process.openStdin();
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const execP = promisify(exec);
-const pdfkit = require('pdfkit');
+const pLimit = require('p-limit');
+const ProgressBar = require('progress');
 let data = '';
 
 stdin.on('data', (chunk) => {
@@ -17,27 +18,40 @@ stdin.on('end', async () => {
         await fs.mkdir('./fc_img');
     }
     function getFlowchartPath(i, j) {
-        return `./fc_img/${i}-${j}.flowchart`;
+        return `./fc_img/${i
+            .toString()
+            .padStart(2, '0')}-${j.toString().padStart(2, '0')}.flowchart`;
     }
     function getSvgPath(i, j) {
-        return `./fc_img/${i}-${j}.svg`;
+        return `./fc_img/${i
+            .toString()
+            .padStart(2, '0')}-${j.toString().padStart(2, '0')}.svg`;
     }
     const promises = [];
+    const limit = pLimit(10);
+    let total = 0;
     fcs.forEach((fcg, i) => {
         fcg.forEach((fc, j) => {
             const fcPath = getFlowchartPath(i, j);
             const svgPath = getSvgPath(i, j);
+            total++;
             promises.push(
-                fs
-                    .writeFile(fcPath, fc, 'utf8')
-                    .then(() =>
-                        execP(
-                            `./node_modules/.bin/diagrams flowchart ${fcPath} ${svgPath}`,
-                        ),
-                    )
-                    .then(() => fs.unlink(fcPath)),
+                limit(() =>
+                    fs
+                        .writeFile(fcPath, fc, 'utf8')
+                        .then(() =>
+                            execP(
+                                `./node_modules/.bin/diagrams flowchart ${fcPath} ${svgPath}`,
+                            ),
+                        )
+                        .then(() => fs.unlink(fcPath))
+                        .then(() => bar.tick()),
+                ),
             );
         });
+    });
+    const bar = new ProgressBar('generating flowcharts |:bar| :percent', {
+        total,
     });
     await Promise.all(promises);
 });

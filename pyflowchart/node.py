@@ -88,7 +88,7 @@ class Node(object):
         self.connections.append(sub_node)
         return sub_node
 
-    def set_connect_direction(self, connect_direction) -> None:
+    def set_connect_direction(self, connect_direction):
         """set connect direction
 
         The following directions are available and define the direction the connection will leave the node from:
@@ -110,6 +110,7 @@ class Node(object):
             None
         """
         self.connect_direction = connect_direction
+        return self
 
 
 class NodesGroup(Node):
@@ -291,13 +292,13 @@ class ConditionNode(Node):
         self.connection_yes = None
         self.connection_no = None
 
-    def connect_yes(self, yes_node):
-        self.connection_yes = CondYN(self, CondYN.YES, yes_node)
+    def connect_yes(self, yes_node, dire=None):
+        self.connection_yes = CondYN(self, CondYN.YES, yes_node, dire)
         self.connections.append(self.connection_yes)
         return yes_node
 
-    def connect_no(self, no_node):
-        self.connection_no = CondYN(self, CondYN.NO, no_node)
+    def connect_no(self, no_node, dire=None):
+        self.connection_no = CondYN(self, CondYN.NO, no_node, dire)
         self.connections.append(self.connection_no)
         return no_node
 
@@ -313,7 +314,7 @@ class CondYN(Node):
     YES = 'yes'
     NO = 'no'
 
-    def __init__(self, cond: Node, yn: str, sub: Node = None):
+    def __init__(self, cond: Node, yn: str, sub: Node = None, connect_direction=None):
         """CondYesNode is a Node subclass for flowchart.js `cond(yes|no)->sub`
 
         Args:
@@ -326,6 +327,8 @@ class CondYN(Node):
         self.cond = cond
         self.yn = yn
         self.sub = sub
+        if connect_direction:
+            self.connect_direction = connect_direction
 
         if isinstance(sub, Node):
             self.connections = [self.sub]
