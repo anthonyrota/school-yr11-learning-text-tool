@@ -229,7 +229,7 @@ def InputQuestion_subr():
         .connect(OperationNode('set instance get_input_error_msg value')) \
         .connect(OperationNode('set instance is_ans_correct value')) \
         .connect(OperationNode('set instance ex_correct_ans value # example correct')) \
-        .connect(EndNode('END class MultipleChoiceQuestion'))
+        .connect(EndNode('END class InputQuestion'))
 
     return [begin, render_subr(), on_accept_subr(), on_ok_clicked_subr()]
 
@@ -239,9 +239,9 @@ def get_integer_error_msg_subr():
     cond = begin \
         .connect(OperationNode('TRY convert text to int')) \
         .connect(ConditionNode('IF error when converting'))
-    cond.connect_yes(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN None'))
+    cond.connect_no(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN None'))
     cond \
-        .connect_no(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN "Please enter an integer."')) \
+        .connect_yes(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN "Please enter an integer."')) \
         .connect(EndNode('END get_integer_error_msg'))
     return [begin]
 
@@ -251,9 +251,9 @@ def get_float_error_msg_subr():
     cond = begin \
         .connect(OperationNode('TRY convert text to float')) \
         .connect(ConditionNode('IF error when converting'))
-    cond.connect_yes(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN None'))
+    cond.connect_no(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN None'))
     cond \
-        .connect_no(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN "Please enter a valid number."')) \
+        .connect_yes(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN "Please enter a valid number."')) \
         .connect(EndNode('END get_float_error_msg'))
     return [begin]
 
@@ -397,7 +397,7 @@ def q_bodmas_subr():
         cond = out_cond \
             .connect_yes(OperationNode('op = choose random op from multi_ops'), 'right') \
             .connect(ConditionNode('IF op == previous_op'))
-        cond.connect_yes(while_cond, 'left')
+        cond.connect_yes(while_cond, 'right')
         loop_tail = ConditionNode('IF new_expr is None')
         loop_tail.connect_yes(while_cond, 'left')
         loop_tail \
@@ -409,7 +409,7 @@ def q_bodmas_subr():
             .connect_no(SubroutineNode('random_expr = get_random_number_expr()'), 'bottom') \
             .connect(ConditionNode('IF randint from 0-1 == 0'))
         cond \
-            .connect_yes(OperationNode('new_expr = op(expr, random_expr)')) \
+            .connect_yes(OperationNode('new_expr = op(expr, random_expr)').set_connect_direction('left')) \
             .connect(loop_tail)
         cond \
             .connect_no(OperationNode('new_expr = op(random_expr, expr)')) \
@@ -463,7 +463,8 @@ def q_bodmas_subr():
         .connect(OperationNode('shuffle choices')) \
         .connect(OperationNode('correct_choice_index = get index of str(expr_value) in choices')) \
         .connect(OperationNode('component = MultipleChoiceQuestion(controller, question, choices, correct_choice_index)')) \
-        .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN component'))
+        .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN component')) \
+        .connect(EndNode('END q_bodmas'))
 
     return [
         begin,
@@ -536,7 +537,7 @@ def q_factorise_quadratic_subr():
     op \
         .connect(SubroutineNode('correct_ans = make_factored_poly(a, b)')) \
         .connect(SubroutineNode('wrong_ans_error_range = (a but positive + b but positive) / 2 + 4')) \
-        .connect(OperationNode('choices = list with correct_ans and three random wrong answers using make_factored_poly and wrong_ans_error_range')) \
+        .connect(SubroutineNode('choices = list with correct_ans and three random wrong answers using make_factored_poly and wrong_ans_error_range')) \
         .connect(OperationNode('shuffle choices list')) \
         .connect(OperationNode('correct_choice_index = get index of correct_ans in choices list')) \
         .connect(OperationNode('component = MultipleChoiceQuestion(controller, question, choices, correct_choice_index)')) \
@@ -612,7 +613,7 @@ def q_simplify_linear_subr():
         .connect(OperationNode('poly_q_terms = make flat list of PolyTerm(variable, coeff, power=1) for each coefficient of each variable')) \
         .connect(OperationNode('shuffle poly_q_terms')) \
         .connect(OperationNode('poly_q = poly_to_str(poly_q_terms)')) \
-        .connect(OperationNode('poly_ans_coeffs = list with nth items being the sum of all the coefficients of nth variable')) \
+        .connect(OperationNode('poly_ans_coeffs = list with nth item being the sum of all the coefficients of nth variable')) \
         .connect(OperationNode('poly_ans_terms = make list of PolyTerm(variable, coeff, power=1) for each variable/coeff in variables/poly_ans_coeffs')) \
         .connect(SubroutineNode('correct_ans = poly_to_str(poly_ans_terms)'))
 
@@ -630,7 +631,7 @@ def q_simplify_linear_subr():
         begin \
             .connect(SubroutineNode('wrong_ans = poly_to_str(map_term(term) for term in poly_ans_terms)')) \
             .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN wrong_ans')) \
-            .connect(EndNode('BEGIN make_wrong_ans'))
+            .connect(EndNode('END make_wrong_ans'))
         return begin
 
     subr \
@@ -670,7 +671,7 @@ def q_find_hypot_subr():
     return [begin]
 
 
-def q_general_geometry():
+def q_general_geometry_subr():
     begin = StartNode('BEGIN q_general_geometry')
 
     def rand_progressive_subr():
@@ -958,7 +959,7 @@ def q_general_geometry():
 
     cond = begin \
         .connect(SubroutineNode('test_progress = get_test_progress(controller, question_index)')) \
-        .connect(OperationNode('q_factories = list [circle_area_from_radius,\n circle_area_from_diameter,\n circle_area_from_circumference,\n circle_circumference_from_radius,\n circle_circumference_from_diameter,\n circle_circumference_from_area,\n circle_radius_from_diameter,\n circle_radius_from_circumference,\n circle_radius_from_area,\n circle_diameter_from_radius,\n circle_diameter_from_circumference,\n circle_diameter_from_area,\n square_perimeter_from_side_length,\n square_perimeter_from_area,\n square_side_length_from_perimeter,\n square_side_length_from_area,\n square_area_from_side_length,\n square_area_from_perimeter,\n rectangle_area_from_side_lengths,\n rectangle_perimeter_from_side_lengths,\n triangle_area_from_base_height,\n trapezoid_area_from_top_bottom_height,\n rhombus_area_from_diagonals,\n kite_area_from_diagonals,\n hypot_from_ab,\n b_from_hypot_a]')) \
+        .connect(OperationNode('q_factories = list of all general geometry question factories')) \
         .connect(OperationNode('q_factory = choose random item from q_factories list')) \
         .connect(OperationNode('unit = random choice from units list')) \
         .connect(SubroutineNode('(question, exact_ans) = q_factory(unit)')) \
@@ -1015,10 +1016,10 @@ def q_general_geometry():
 
     cond = op.connect(ConditionNode('IF randint from 0-1 is 0'))
     cond \
-        .connect_yes(OperationNode('component = InputQuestion(controller, question, get_input_error_msg, input_q_is_ans_correct, correct_ans)')) \
+        .connect_yes(OperationNode('component = InputQuestion(controller,\n question,\n get_input_error_msg,\n input_q_is_ans_correct,\n correct_ans)'), 'right') \
         .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN component'))
     while_anchor = cond \
-        .connect_no(OperationNode('fake_answer_min = round (correct_ans / 3) + 1')) \
+        .connect_no(OperationNode('fake_answer_min = round (correct_ans / 3) + 1'), 'bottom') \
         .connect(OperationNode('fake_answer_max = round (correct_ans * 3) + 1')) \
         .connect(OperationNode('fake_answers = []')) \
         .connect(ConditionNode('IF correct_ans is integer'))
@@ -1028,13 +1029,14 @@ def q_general_geometry():
         .connect_yes(OperationNode('fake_answer = randint from fake_answer_min to fake_answer_max')) \
         .connect(cond)
     while_anchor \
-        .connect_no(SubroutineNode('rounded_correct_ans = num_to_str(correct_ans)')) \
+        .connect_no(SubroutineNode('rounded_correct_ans = num_to_str(correct_ans)'), 'left') \
         .connect(OperationNode('num_zeros = length of rounded_correct_ans - length of rounded_correct_ans without trailing zeros')) \
-        .connect(SubroutineNode('fake_answer = roundTraditional(randfloat from fake_answer_min to fake_answer_max, dp - num_zeros)')) \
+        .connect(OperationNode('fake_raw = randfloat from fake_answer_min to fake_answer_max')) \
+        .connect(SubroutineNode('fake_answer = roundTraditional(fake_raw, dp - num_zeros)').set_connect_direction('right')) \
         .connect(cond)
-    cond.connect_yes(while_anchor)
+    cond.connect_yes(while_anchor, 'right')
     cond = cond \
-        .connect_no(OperationNode('add fake_answer to fake_answers list')) \
+        .connect_no(OperationNode('add fake_answer to fake_answers list'), 'bottom') \
         .connect(ConditionNode('IF length of fake_answers list is 3'))
     cond.connect_no(while_anchor)
     cond \
@@ -1101,13 +1103,13 @@ def make_questions_subr():
         .connect(EndNode('END make_questions'))
 
     def make_question_subr():
-        begin = StartNode('BEGIN make_question_subr')
+        begin = StartNode('BEGIN make_question')
         begin \
             .connect(OperationNode('make_question_component = random choice from possible_questions')) \
             .connect(SubroutineNode('question_component = make_question_component(controller, question_index)')) \
             .connect(OperationNode('question = TestQuestion(question_component, answer_state=not answered)')) \
             .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN question')) \
-            .connect(EndNode('END make_question_subr'))
+            .connect(EndNode('END make_question'))
         return begin
 
     return [begin, make_question_subr()]
@@ -1119,8 +1121,8 @@ def finish_subr():
     def format_time_subr():
         begin = StartNode('BEGIN format_time')
         begin \
-            .connect(OperationNode('(m, s) = divmod (round time, 60)')) \
-            .connect(OperationNode('(h, m) = divmod (m, 60)')) \
+            .connect(SubroutineNode('(m, s) = divmod(round time, 60)')) \
+            .connect(SubroutineNode('(h, m) = divmod(m, 60)')) \
             .connect(OperationNode('result = "Hours: {h}, Minutes: {m}, Seconds: {s}"')) \
             .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN result')) \
             .connect(EndNode('END format_time'))
@@ -1129,7 +1131,7 @@ def finish_subr():
     def on_back_click_subr():
         begin = StartNode('BEGIN on_back_click')
         begin \
-            .connect(OperationNode('test = Test(start_time, questions, question_index = length of questions - 1)')) \
+            .connect(OperationNode('test = Test(start_time, questions, question_index=length of questions - 1)')) \
             .connect(OperationNode('new_state = PlayingScreenState(session, test)')) \
             .connect(OperationNode('UI set state new_state')) \
             .connect(EndNode('END on_back_click'))
@@ -1155,7 +1157,7 @@ def finish_subr():
         begin = StartNode('BEGIN on_retry_test_click')
         begin \
             .connect(SubroutineNode('start_time = get_cur_time()')) \
-            .connect(OperationNode('new_questions = map questions list and mark each each question as not answered')) \
+            .connect(OperationNode('new_questions = map questions list and change each question\'s answer state to not answered')) \
             .connect(OperationNode('test = Test(start_time, new_questions, question_index=0)')) \
             .connect(OperationNode('new_state = PlayingScreenState(session, test)')) \
             .connect(OperationNode('UI set state new_state')) \
@@ -1192,7 +1194,6 @@ def finish_subr():
             .connect(EndNode('END on_retry_incorrect_questions_click'))
         return begin
 
-    begin = StartNode('BEGIN SettingsScreen')
     begin \
         .connect(OperationNode('questions_right = sum number questions in questions list that are answered correct')) \
         .connect(SubroutineNode('current_time = get_cur_time()')) \
@@ -1325,7 +1326,7 @@ print(json.dumps([
         q_factorise_quadratic_subr(),
         q_simplify_linear_subr(),
         q_find_hypot_subr(),
-        q_general_geometry(),
+        q_general_geometry_subr(),
         make_questions_subr(),
         finish_subr(),
         playing_subr(),

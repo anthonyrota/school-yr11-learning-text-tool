@@ -2708,8 +2708,8 @@
                             ),
                             symbol.shiftY(
                                 this.options.y +
-                                    (maxHeight - symbol.height) / 2 +
-                                    this.options['line-width'],
+                                    /*(maxHeight - symbol.height) / 2 +*/ this
+                                        .options['line-width'],
                             );
                     // for (i = 0, len = this.symbols.length; i < len; i++) {
                     //   symbol = this.symbols[i];
@@ -2941,6 +2941,7 @@
                     symbol.node.setAttribute('class', this.getAttr('class')),
                     this.text.attr({
                         y: symbol.getBBox().height / 2,
+                        'font-style': 'italic',
                     }),
                     this.group.push(symbol),
                     symbol.insertBefore(this.text),
