@@ -38,12 +38,24 @@ stdin.on('end', async () => {
     const promises = [];
     const limit = pLimit(10);
     let total = 0;
+    let toc = 'Flowchart Table of Contents\n';
     fcs.forEach((fcg, i) => {
         fcg.forEach((fc, j) => {
             const fcPath = getFlowchartPath(i, j);
             const svgPath = getSvgPath(i, j);
-            const pngPath = getPngPath(i, j);
             total++;
+            if (i === 0) {
+                toc += `\nEntry Point...${total + 2}`;
+            } else {
+                const title = /BEGIN (class )?([_a-zA-Z][_a-zA-Z0-9#]+)/.exec(
+                    fc,
+                )[2];
+                if (j == 0) {
+                    toc += `\n${title}...${total + 2}`;
+                } else {
+                    toc += `\n  ${title}...${total + 2}`;
+                }
+            }
             promises.push(
                 limit(() =>
                     fs
@@ -65,5 +77,6 @@ stdin.on('end', async () => {
     const bar = new ProgressBar('generating flowchart images |:bar| :percent', {
         total,
     });
+    await fs.writeFile('./fc_img/_toc.txt', toc, 'utf8');
     await Promise.all(promises);
 });
