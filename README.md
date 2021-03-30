@@ -14,7 +14,7 @@ The subject areas which can be covered are:
 - [ ] History
 - [ ] Science
 
-### The requirements of the educational tool:
+### The requirements of the educational tool
 
 - [ ] Introduction and information about the tool
 - [ ] Instructions on how to use the tool
@@ -43,9 +43,9 @@ See below marking criteria for further information
 - [x] Code structure demonstrates an understanding
 of programming principles
 - Use of the following:
-- - [x] Decisions
-- - [x] Loops
-- - [x] Data Structures (Lists, arrays, etc)
+  - - [x] Decisions
+  - - [x] Loops
+  - - [x] Data Structures (Lists, arrays, etc)
 - [x] Good use of functions
 - [x] Good use of variables
 - [x] Demonstration of a range of data types
@@ -59,6 +59,7 @@ of programming principles
 - [x] A score is displayed to students
 
 *For 18-25 Marks:*
+
 - [ ] High quality code that meets the functionality/code design requirements.
       Well written, efficient, clean code with no bugs or errors present.
 
@@ -71,25 +72,29 @@ of programming principles
 - [x] Helpful feedback is given to the students throughout
 
 *For 8-10 Marks:*
+
 - [x] High quality educational tool, that also incorporates all dot points.
 
 ### Python Code Readability & Commenting
 
 *For 5-6 Marks:*
+
 - [ ] Code is well documented with useful and meaningful comments / variable names
 - [ ] No errors, code is clean, understandable, and well-organized
 
 ### Flowchart
 
 *For 5-8 Marks:*
-- [ ] Demonstrates an outstanding ability to produce a flowchart
-- [ ] Demonstrates the ability to depict the educational tool program accurately
-- [ ] Demonstrates excellent ability to use flowchart symbols and structures
-- [ ] Demonstrates excellent ability to use flowcharts to depict subprograms/functions
+
+- [x] Demonstrates an outstanding ability to produce a flowchart
+- [x] Demonstrates the ability to depict the educational tool program accurately
+- [x] Demonstrates excellent ability to use flowchart symbols and structures
+- [x] Demonstrates excellent ability to use flowcharts to depict subprograms/functions
 
 ### Logbook
 
 *For 5-6 Marks:*
+
 - [ ] Demonstrates an outstanding ability to document a logbook
 - [ ] Provides insight into all the work completed, including challenges, achievements
       and references

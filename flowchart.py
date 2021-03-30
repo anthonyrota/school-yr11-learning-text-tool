@@ -555,7 +555,7 @@ def q_simplify_linear_subr():
             .connect(OperationNode('set instance variable value')) \
             .connect(OperationNode('set instance coeff value')) \
             .connect(OperationNode('set instance power value')) \
-            .connect(EndNode('END class MultipleChoiceQuestion'))
+            .connect(EndNode('END class PolyTerm'))
 
         return begin
 
@@ -641,7 +641,7 @@ def q_simplify_linear_subr():
         .connect(OperationNode('question = "Simplify {poly_q}"')) \
         .connect(OperationNode('component = MultipleChoiceQuestion(controller, question, choices, correct_choice_index)')) \
         .connect(InputOutputNode(InputOutputNode.OUTPUT, 'RETURN component')) \
-        .connect(EndNode('END make_wrong_ans'))
+        .connect(EndNode('END q_simplify_linear'))
 
     return [begin, PolyTerm_subr(), poly_to_str_subr(), make_wrong_ans_subr(), map_term_subr()]
 
