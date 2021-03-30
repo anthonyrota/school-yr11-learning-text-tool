@@ -58,10 +58,14 @@ class RootScreenType(Enum):
 
 
 class UsernameScreenState:
+    """Initial screen where user enters their username. After entering the form
+    the user is taken to the menu screen."""
     root_screen_type = RootScreenType.SET_USERNAME
 
 
 class MenuScreenState:
+    """Screen where user can navigate to all the other screens (play screen,
+    help screen, settings screen)."""
     root_screen_type = RootScreenType.MENU
 
     def __init__(self, session):
@@ -69,6 +73,8 @@ class MenuScreenState:
 
 
 class HelpScreenState:
+    """Screen which gives user information about how to use this program and
+    information about the test."""
     root_screen_type = RootScreenType.HELP
 
     def __init__(self, session, previous_state):
@@ -77,6 +83,8 @@ class HelpScreenState:
 
 
 class SettingsScreenState:
+    """Screen where user can change the difficulty, length and content of the
+    test."""
     root_screen_type = RootScreenType.SETTINGS
 
     def __init__(self, session):
@@ -84,6 +92,7 @@ class SettingsScreenState:
 
 
 class PlayingScreenState:
+    """Screen where the user takes the test."""
     root_screen_type = RootScreenType.PLAYING
 
     def __init__(self, session, test):
@@ -92,6 +101,8 @@ class PlayingScreenState:
 
 
 class Session:
+    """Stores information about the user (username) and the test settings to be
+    shared across all screens in this execution of the program."""
     def __init__(self, username, settings):
         self.username = username
         self.settings = settings
@@ -99,15 +110,20 @@ class Session:
 
 class Test:
     def __init__(self, start_time, questions, question_index):
+        # When the current test was started.
         self.start_time = start_time
+        # TestQuestion list.
         self.questions = questions
+        # The index of the current question.
         self.question_index = question_index
         pass
 
 
 class TestQuestion:
     def __init__(self, question_component, answer_state):
+        # The component that renders this question.
         self.question_component = question_component
+        # Either not answered, answered correct or answered incorrect.
         self.answer_state = answer_state
         pass
 
@@ -126,6 +142,7 @@ class TestQuestionAnswerStateAnsweredCorrect:
     type = TestQuestionAnswerStateType.ANSWERED_CORRECT
 
     def __init__(self, chosen_answer):
+        # The answer the user submitted.
         self.chosen_answer = chosen_answer
 
 
@@ -133,13 +150,17 @@ class TestQuestionAnswerStateAnsweredIncorrect:
     type = TestQuestionAnswerStateType.ANSWERED_INCORRECT
 
     def __init__(self, chosen_answer):
+        # The answer the user submitted.
         self.chosen_answer = chosen_answer
 
 
 class TestSettings:
     def __init__(self, difficulty, content, question_count):
+        # Either normal or god mode.
         self.difficulty = difficulty
+        # A set containing the content in the test.
         self.content = content
+        # The number of questions in the test.
         self.question_count = question_count
 
 
@@ -155,9 +176,9 @@ class TestContentArea(Enum):
 
 
 class TestQuestionCountSetting(Enum):
-    SHORT = 15
-    NORMAL = 30
-    LONG = 60
+    SHORT = 15 # 15 Questions.
+    NORMAL = 30 # 30 Questions.
+    LONG = 60 # 60 Questions.
 
 
 def InputDialog(
@@ -204,8 +225,8 @@ def InputDialog(
 
 
 class ToolbarFrameToolbarPosition(Enum):
-    TOP = auto()
-    BOTTOM = auto()
+    TOP = auto() # Toolbar at top of program.
+    BOTTOM = auto() # Toolbar at bottom of program.
 
 
 def ToolbarFrame(body, toolbar_content, position):
@@ -237,10 +258,12 @@ def create_button_list_keybindings(buttons, key_previous, key_next):
 
 
 def create_vertical_button_list_keybindings(buttons):
+    """Creates up/down keybindings to cycle through a vertical button list."""
     return create_button_list_keybindings(buttons, 'up', 'down')
 
 
 def create_horizontal_button_list_keybindings(buttons):
+    """Creates left/right keybindings to cycle through a horizontal list."""
     return create_button_list_keybindings(buttons, 'left', 'right')
 
 
@@ -249,6 +272,8 @@ def SetUsernameScreen(controller):
         return len(username) > 0
 
     def on_username(username):
+        # Create session with username and default settings and go to menu
+        # screen.
         session = Session(
             username=username,
             settings=TestSettings(
@@ -273,6 +298,7 @@ def SetUsernameScreen(controller):
 
 def MenuScreen(controller):
     def on_start_click():
+        # Generate questions and start test.
         start_time = get_cur_time()
         new_state = PlayingScreenState(
             session=controller.state.session,
@@ -285,10 +311,12 @@ def MenuScreen(controller):
         controller.set_state(new_state)
 
     def on_settings_click():
+        # Go to settings screen.
         new_state = SettingsScreenState(session=controller.state.session)
         controller.set_state(new_state)
 
     def on_help_click():
+        # Go to help screen.
         new_state = HelpScreenState(
             session=controller.state.session,
             previous_state=controller.state
@@ -427,6 +455,7 @@ def HelpScreen(controller):
     )
 
     def on_back_click():
+        # Go to previous screen.
         new_state = controller.state.previous_state
         controller.set_state(new_state)
 
@@ -512,6 +541,9 @@ def SettingsScreen(controller):
     )
 
     def on_back_click():
+        # Check that at least one content area is chosen, then go to menu screen
+        # updating session settings.
+
         difficulty = difficulty_ui.current_value
         content = content_ui.current_values
         question_count = question_count_ui.current_value
@@ -594,12 +626,15 @@ class MultipleChoiceQuestion(QuestionComponent):
             is_correct_choice_index = choice_index == correct_choice_index
 
             def on_choice_click():
+                # One of the choices was chosen.
                 if is_answered:
                     return
                 if is_correct_choice_index:
+                    # Answered correct.
                     update_question_answer_state(
                         TestQuestionAnswerStateAnsweredCorrect(choice_index))
                 else:
+                    # Answered incorrect.
                     update_question_answer_state(
                         TestQuestionAnswerStateAnsweredIncorrect(choice_index))
 
@@ -609,6 +644,7 @@ class MultipleChoiceQuestion(QuestionComponent):
         answer_state = test.questions[test.question_index].answer_state
 
         def make_button(letter, i, choice_text):
+            # Makes button element for the MC choice with click handler.
             is_correct_answer = is_answered and i == correct_choice_index
             is_correct_chosen_answer = is_answered and i == correct_choice_index and answer_state.type == TestQuestionAnswerStateType.ANSWERED_CORRECT and answer_state.chosen_answer == i
             is_incorrect_chosen_answer = is_answered and i != correct_choice_index and answer_state.type == TestQuestionAnswerStateType.ANSWERED_INCORRECT and answer_state.chosen_answer == i
@@ -678,6 +714,7 @@ class MultipleChoiceQuestion(QuestionComponent):
             return
         app = get_app()
         first_button = self._first_button
+        # Focus first MC button.
         app.layout.focus(first_button)
 
 
@@ -698,25 +735,30 @@ class InputQuestion(QuestionComponent):
                 return
             error = self._get_input_error_msg(textfield.text)
             if error:
+                # If error update UI with error msg.
                 nonlocal error_msg
                 error_msg = error
                 app = get_app()
                 app.invalidate()
             else:
+                # If no error focus OK button.
                 get_app().layout.focus(ok_button)
             return True  # Keeps text.
 
         def on_ok_clicked():
+            # When OK button clicked.
             if is_answered:
                 return
             ans = textfield.text
             error = self._get_input_error_msg(ans)
             if error:
+                # If error update UI with error msg.
                 nonlocal error_msg
                 error_msg = error
                 app = get_app()
                 app.invalidate()
                 return
+            # If no error update answer as either correct/incorrect.
             if self._is_ans_correct(ans):
                 update_question_answer_state(
                     TestQuestionAnswerStateAnsweredCorrect(ans))
@@ -827,6 +869,7 @@ class InputQuestion(QuestionComponent):
             return
         app = get_app()
         textfield = self._textfield
+        # Focus textfield element.
         app.layout.focus(textfield)
 
 
@@ -847,6 +890,7 @@ def get_float_error_msg(text):
 
 
 def get_test_progress(controller, question_index):
+    """Maps the test progress to a float between 0 and 1"""
     settings = controller.state.session.settings
     question_count = settings.question_count.value
     # Between 0 and 1.
@@ -870,9 +914,11 @@ def q_bodmas(controller, question_index):
     difficulty = controller.state.session.settings.difficulty
 
     def add_parens(str):
+        """8+4 => (8+4)"""
         return '(%s)' % str
 
     def addition_op(lhs, rhs):
+        """8,4 => 8+4"""
         (lhs_str, lhs_value, _) = lhs
         (rhs_str, rhs_value, _) = rhs
         new_str = '%s + %s' % (lhs_str, add_parens(rhs_str)
@@ -881,6 +927,7 @@ def q_bodmas(controller, question_index):
         return new_str, new_value, False
 
     def subtraction_op(lhs, rhs):
+        """8,4 => 8-4"""
         (lhs_str, lhs_value, _) = lhs
         (rhs_str, rhs_value, is_rhs_grouped) = rhs
         new_str = '%s - %s' % (lhs_str,
@@ -889,6 +936,7 @@ def q_bodmas(controller, question_index):
         return new_str, new_value, False
 
     def multiplication_op(lhs, rhs):
+        """8,4 => 8*4"""
         (lhs_str, lhs_value, is_lhs_grouped) = lhs
         (rhs_str, rhs_value, is_rhs_grouped) = rhs
         new_str = '%s × %s' % (lhs_str if is_lhs_grouped else add_parens(
@@ -898,10 +946,12 @@ def q_bodmas(controller, question_index):
 
     # https://stackoverflow.com/questions/6800193/what-is-the-most-efficient-way-of-finding-all-the-factors-of-a-number-in-python
     def factors(n):
+        """Gets all factors of n."""
         return set(reduce(list.__add__,
                           ([i, n // i] for i in range(1, int(n ** 0.5) + 1) if n % i == 0)))
 
     def division_op(dividend):
+        """8,4 => 8/4"""
         (dividend_str, dividend_value, is_dividend_grouped) = dividend
         if dividend_value == 0:
             divisor = randint(1, 10)
@@ -916,6 +966,7 @@ def q_bodmas(controller, question_index):
     superscript = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
 
     def power_op(base):
+        """8 => 8^2"""
         (base_str, base_value, _) = base
         if base_value < 0 or base_value > 20:
             return None
@@ -927,12 +978,14 @@ def q_bodmas(controller, question_index):
         return new_str, new_value, True
 
     def negate_op(expr):
+        """8 => -8"""
         (expr_str, expr_value, is_expr_grouped) = expr
         new_str = '-%s' % (expr_str if is_expr_grouped else add_parens(expr_str))
         new_value = -expr_value
         return new_str, new_value, False
 
     def parens_op(expr):
+        """8-4 => (8-4)"""
         (expr_str, expr_value, _) = expr
         if expr_str.isdigit():
             return None
@@ -974,6 +1027,7 @@ def q_bodmas(controller, question_index):
         )
 
     def get_q_expr():
+        # Generate random BODMAS expression (eg. 4+(6*8)/2^2)
         expr = get_random_number_expr()
         previous_op = None
 
@@ -1013,6 +1067,7 @@ def q_bodmas(controller, question_index):
             ex_correct_ans=str(expr_value)
         )
 
+    # Generate fake answers.
     fake_answer_range = abs(expr_value) + 15
     fake_answers = []
     while True:
@@ -1031,6 +1086,11 @@ def q_bodmas(controller, question_index):
 
 
 def q_factorise_quadratic(controller, question_index):
+    # The algorithm to generate the quadratic is that we generate random numbers
+    # k, a, and b. The quadratic will be of form k*(x+a)*(a+b), which is
+    # expanded as k*x^2 + k*(a+b)*x + k*a*b, and hence we derive the question
+    # expression.
+
     difficulty = controller.state.session.settings.difficulty
 
     test_progress = get_test_progress(controller, question_index)
@@ -1055,6 +1115,7 @@ def q_factorise_quadratic(controller, question_index):
     question = f'Factorise {poly} fully.'
 
     def make_factored_poly(a, b):
+        # a,b ==> k(x+a)(x+b).
         def make_term(n):
             if n == 0:
                 return 'x'
@@ -1066,6 +1127,7 @@ def q_factorise_quadratic(controller, question_index):
             a_term + '²' if a_term == b_term else b_term + a_term if b_term == 'x' else a_term + b_term)
 
     correct_ans = make_factored_poly(a, b)
+    # Generate fake answers.
     wrong_ans_error_range = (abs(a) + abs(b)) // 2 + 4
     choices = list({correct_ans, make_factored_poly(a + randint(-wrong_ans_error_range, wrong_ans_error_range),
                                                     b + randint(-wrong_ans_error_range, wrong_ans_error_range)),
@@ -1080,6 +1142,7 @@ def q_factorise_quadratic(controller, question_index):
 
 
 class PolyTerm:
+    # eg. PolyTerm('x', 3, 5) ==> 3x^5.
     def __init__(self, variable, coeff, power):
         self.variable = variable
         self.coeff = coeff
@@ -1087,6 +1150,7 @@ class PolyTerm:
 
 
 def poly_to_str(terms):
+    """Returns algebraic expression of the sum of all the list of PolyTerm's."""
     poly_str = ''
     for term in terms:
         if term.coeff == 0:
@@ -1110,6 +1174,12 @@ def poly_to_str(terms):
 
 
 def q_simplify_linear(controller, question_index):
+    # 1. Generate random algebraic variable names (eg. 'x', 'a', 'e', 'z').
+    # 2. Generate a random number of integer coefficients for each variable.
+    # 3. Create question expression from coefficients eg. 2x+4y-2x+9x.
+    # 4. Create answer expression by summing variable coefficients.
+    #    eg. 9x+4y
+
     difficulty = controller.state.session.settings.difficulty
     test_progress = get_test_progress(controller, question_index)
     if difficulty == TestDifficultySetting.NORMAL:
@@ -1141,6 +1211,7 @@ def q_simplify_linear(controller, question_index):
 
         return poly_to_str([map_term(term) for term in poly_ans_terms])
 
+    # Make fake answers.
     choices = list({correct_ans, make_wrong_ans(),
                     make_wrong_ans(), make_wrong_ans()})
     shuffle(choices)
@@ -1179,9 +1250,11 @@ def q_find_hypot(controller, question_index):
         upper_bound = round(map_range(test_progress, 0, 1,
                                       500, len(pythag_triple_list) - 1))
     i = randint(0, upper_bound)
+    # Get pythag triple satisfying a^2+b^2=c^2.
     a, b, c = pythag_triple_list[i]
     unit = random_choice(units)
     question = f'What is the length of the hypotenuse in a right angled triangle with non-hypotenuse sides of length {a}{unit} and {b}{unit}?'
+    # Fake answers are the adjacent pythag triple d^2+e^2=f^2
     d, e, f = pythag_triple_list[1 if i == 0 else i - 1]
     choices = list({str(c) + unit, str(d) + unit,
                     str(e) + unit, str(f) + unit})
@@ -1346,13 +1419,16 @@ def q_general_geometry(controller, question_index):
         b_from_hypot_a
     ]
 
+    # Choose random type of question.
     q_factory = random_choice(q_factories)
     unit = random_choice(units)
     (question, exact_ans) = q_factory(unit)
+    # Get how many decimal points to round to.
     dp = 0 if float(exact_ans).is_integer() else randint(0, 4)
 
     # https://stackoverflow.com/questions/20457038/how-to-round-to-2-decimals-with-python
     def roundTraditional(val, digits):
+        # round() function is not sufficient, (eg. sometimes rounds 5 down).
         return round(val + 10 ** (-len(str(val)) - 1), digits)
 
     correct_ans = float(roundTraditional(exact_ans, dp))
@@ -1379,6 +1455,7 @@ def q_general_geometry(controller, question_index):
             ex_correct_ans=num_to_str(correct_ans)
         )
 
+    # Generate fake answers.
     fake_answer_min = round(correct_ans / 3) + 1
     fake_answer_max = round(correct_ans * 3) + 1
     fake_answers = []
@@ -1387,12 +1464,16 @@ def q_general_geometry(controller, question_index):
         if correct_ans.is_integer():
             fake_answer = randint(fake_answer_min, fake_answer_max)
         else:
+            # Ensure rounding is same (eg. 0.2000 correct ans => 0.6000 fake
+            # answer instead of 0.6429 as otherwise the correct ans is too
+            # obvious).
             rounded_correct_ans = num_to_str(correct_ans)
             num_zeros = len(rounded_correct_ans) - \
                 len(rounded_correct_ans.rstrip('0'))
             fake_answer = roundTraditional(
                 randfloat(fake_answer_min, fake_answer_max), dp - num_zeros)
         if fake_answer == correct_ans or fake_answer in fake_answers:
+            # Ensure no duplicate answers.
             continue
         fake_answers.append(fake_answer)
         if len(fake_answers) == 3:
@@ -1411,6 +1492,7 @@ def make_questions(controller):
     content = settings.content
     question_count = settings.question_count
 
+    # Add questions for chosen content areas.
     possible_questions = []
     if TestContentArea.NUMBER_THEORY in content:
         possible_questions += [
@@ -1432,6 +1514,7 @@ def make_questions(controller):
         ]
 
     def make_question(question_index):
+        # Creates random question component.
         make_question_component = random_choice(possible_questions)
         question_component = make_question_component(
             controller, question_index)
@@ -1444,6 +1527,7 @@ def make_questions(controller):
 
 
 def format_time(time):
+    """Formats the time to a human-readable expression."""
     m, s = divmod(round(time), 60)
     h, m = divmod(m, 60)
 
@@ -1451,6 +1535,7 @@ def format_time(time):
 
 
 def FinishScreen(controller):
+    # Screen at end of test displaying score, time played and restart options.
     session = controller.state.session
     test = controller.state.test
     questions_count = session.settings.question_count
@@ -1466,6 +1551,7 @@ def FinishScreen(controller):
         questions_right, questions_count.value, time_played_formatted)
 
     def on_back_click():
+        # Go back to last question of test.
         new_state = PlayingScreenState(
             session=session,
             test=Test(
@@ -1477,6 +1563,7 @@ def FinishScreen(controller):
         controller.set_state(new_state)
 
     def on_help_click():
+        # Go to help screen.
         new_state = HelpScreenState(
             session=session,
             previous_state=controller.state
@@ -1507,10 +1594,12 @@ def FinishScreen(controller):
     )
 
     def on_menu_click():
+        # Go to menu (exiting test).
         new_state = MenuScreenState(session=session)
         controller.set_state(new_state)
 
     def on_retry_test_click():
+        # Retry test and reset all questions as unanswered.
         start_time = get_cur_time()
         new_questions = [TestQuestion(question_component=question.question_component,
                                       answer_state=TestQuestionAnswerStateNotAnswered()) for question in test.questions]
@@ -1525,6 +1614,7 @@ def FinishScreen(controller):
         controller.set_state(new_state)
 
     def on_retry_incorrect_questions_click():
+        # Retry test and reset all incorrect questions as unanswered.
         def map_question(question):
             if question.answer_state.type == TestQuestionAnswerStateType.ANSWERED_INCORRECT:
                 return TestQuestion(question_component=question.question_component,
@@ -1541,6 +1631,7 @@ def FinishScreen(controller):
             test=Test(
                 start_time=test.start_time,
                 questions=new_questions,
+                # Skip to first incorrect question.
                 question_index=first_incorrect_question_index
             )
         )
@@ -1607,6 +1698,10 @@ def PlayingScreen(controller):
     current_question_component = current_question.question_component
 
     def update_question_answer_state(answer_state):
+        # This function is passed to the question components .render() method as
+        # a way to change the answer state of the question. Eg. when user
+        # submits a multiple choice answer => call update_question_answer_state
+        # eg. with "correct answer state" if the answer submitted is correct.
         new_current_question = TestQuestion(
             question_component=current_question_component,
             answer_state=answer_state
@@ -1626,6 +1721,7 @@ def PlayingScreen(controller):
     body = current_question_component.render(update_question_answer_state)
 
     def on_back_click():
+        # Go to previous question.
         new_state = PlayingScreenState(
             session=session,
             test=Test(
@@ -1637,6 +1733,7 @@ def PlayingScreen(controller):
         controller.set_state(new_state)
 
     def on_next_click():
+        # Go to next question.
         new_state = PlayingScreenState(
             session=session,
             test=Test(
@@ -1648,6 +1745,7 @@ def PlayingScreen(controller):
         controller.set_state(new_state)
 
     def on_help_click():
+        # Go to help screen.
         new_state = HelpScreenState(
             session=session,
             previous_state=controller.state
@@ -1655,6 +1753,7 @@ def PlayingScreen(controller):
         controller.set_state(new_state)
 
     def on_menu_click():
+        # Go to menu (exiting test).
         new_state = MenuScreenState(session=session)
         controller.set_state(new_state)
 
@@ -1701,6 +1800,7 @@ def PlayingScreen(controller):
 def RootScreen(controller):
     state = controller.state
 
+    # Render screen associated with state screen type.
     if state.root_screen_type == RootScreenType.SET_USERNAME:
         return SetUsernameScreen(controller)
 
@@ -1718,6 +1818,7 @@ def RootScreen(controller):
 
 
 class Controller:
+    # Controls state management and re-rendering according to changed state.
     def __init__(self, state, Screen):
         self._Screen = Screen
         self._container = DynamicContainer(lambda: self._current_screen)
@@ -1735,6 +1836,7 @@ def RootController(root_state=UsernameScreenState()):
     return Controller(root_state, RootScreen)
 
 
+# Styling
 correct_style = 'bg:#00aa00'
 incorrect_style = 'bg:#dd0000'
 
@@ -1762,6 +1864,7 @@ def focus_first_element():
     app.layout.focus_next()
 
 
+# Keybindings.
 tab_bindings = KeyBindings()
 tab_bindings.add('tab')(focus_next)
 tab_bindings.add('s-tab')(focus_previous)
@@ -1771,6 +1874,7 @@ exit_bindings.add('c-c')(lambda e: exit_current_app())
 
 
 def build_application():
+    """Creates prompt_toolkit application."""
     layout = Layout(RootController())
 
     def ensure_focus(_):
@@ -1814,6 +1918,7 @@ def build_application():
 
 
 def main():
+    # Create and run application.
     build_application().run()
 
 

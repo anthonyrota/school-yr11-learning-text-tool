@@ -60,7 +60,7 @@ of programming principles
 
 *For 18-25 Marks:*
 
-- [ ] High quality code that meets the functionality/code design requirements.
+- [x] High quality code that meets the functionality/code design requirements.
       Well written, efficient, clean code with no bugs or errors present.
 
 ### Target Audience
@@ -79,8 +79,8 @@ of programming principles
 
 *For 5-6 Marks:*
 
-- [ ] Code is well documented with useful and meaningful comments / variable names
-- [ ] No errors, code is clean, understandable, and well-organized
+- [x] Code is well documented with useful and meaningful comments / variable names
+- [x] No errors, code is clean, understandable, and well-organized
 
 ### Flowchart
 
@@ -95,7 +95,7 @@ of programming principles
 
 *For 5-6 Marks:*
 
-- [ ] Demonstrates an outstanding ability to document a logbook
-- [ ] Provides insight into all the work completed, including challenges, achievements
+- [x] Demonstrates an outstanding ability to document a logbook
+- [x] Provides insight into all the work completed, including challenges, achievements
       and references
-- [ ] Utilises the logbook template correctly
+- [x] Utilises the logbook template correctly
