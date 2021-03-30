@@ -317,7 +317,7 @@ def MenuScreen(controller):
 
     toolbar_content = Window(
         content=FormattedTextControl(
-            "Hello %s. Let's play Quick Maths!" % controller.state.session.username
+            "Hi %s. Let's play Quick Maths!" % controller.state.session.username
         ),
         align=WindowAlign.CENTER,
         height=1
@@ -326,23 +326,91 @@ def MenuScreen(controller):
     return ToolbarFrame(body=body, toolbar_content=toolbar_content, position=ToolbarFrameToolbarPosition.TOP)
 
 
-help_text = '''   ____  _    _ _____ _____ _  __  __  __       _______ _    _  _____
-  / __ \\| |  | |_   _/ ____| |/ / |  \\/  |   /\\|__   __| |  | |/ ____|
- | |  | | |  | | | || |    | ' /  | \\  / |  /  \\  | |  | |__| | (___
- | |  | | |  | | | || |    |  <   | |\\/| | / /\\ \\ | |  |  __  |\\___ \\
- | |__| | |__| |_| || |____| . \\  | |  | |/ ____ \\| |  | |  | |____) |
-  \\___\\_\\\\____/|_____\\_____|_|\\_\\ |_|  |_/_/    \\_\\_|  |_|  |_|_____/
-
+help_text = '''
+ ██████╗ ██╗   ██╗██╗ ██████╗██╗  ██╗███╗   ███╗ █████╗ ████████╗██╗  ██╗███████╗
+██╔═══██╗██║   ██║██║██╔════╝██║ ██╔╝████╗ ████║██╔══██╗╚══██╔══╝██║  ██║██╔════╝
+██║   ██║██║   ██║██║██║     █████╔╝ ██╔████╔██║███████║   ██║   ███████║███████╗
+██║▄▄ ██║██║   ██║██║██║     ██╔═██╗ ██║╚██╔╝██║██╔══██║   ██║   ██╔══██║╚════██║
+╚██████╔╝╚██████╔╝██║╚██████╗██║  ██╗██║ ╚═╝ ██║██║  ██║   ██║   ██║  ██║███████║
+ ╚══▀▀═╝  ╚═════╝ ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝
 
 CONTROLS:
 
-Left/Right/Up/Down/Tab/Shift-Tab: Navigate through buttons.
+Left/Right/Up/Down/Tab/Shift-Tab: Navigate through buttons/ui controls.
 
-Enter: Click the selected button
+Enter: Click or activate the selected button/ui control.
 
-Note: You can also click buttons with your mouse
+Note: You can also click buttons with your mouse if your terminal supports it.
 
-Ctrl-C: Exit'''
+Scrolling is supported (scroll with your mouse or trackpad).
+
+Ctrl-C: Exit,
+
+Hi. Welcome to QuickMaths(tm), the best resource for year 7-8s looking to improve their maths skills!
+
+To start a new test, go back to the menu screen and select the start button. This will start a new test with questions randomly generated from the content areas you have chosen.
+
+You can change the content tested in the settings screen, which can be accessed again through the menu screen.
+
+There are three content areas in this program: Number Theory, Algebra and Geometry.
+
+Number Theory involves evaluating BODMAS expressions.
+
+Algebra involves factorising single variable quadratics and simplifying linear algebraic expressions.
+
+Geometry involves general geometry questions (such as calculating the area of a circle, or calculating the hypotenuse of a right angled triangle.)
+
+Note that you have to choose at least one content area to be in the test - otherwise the test won't have any questions!
+
+If you are finding the test too easy, or want to be challenged further, then in the settings screen you can change the difficulty from the default Normal difficulty to God Mode difficulty.
+
+This will dramatically increase the difficulty of all questions in the test, and be warned this will introduce questions that the average year 7-8 may not be able to answer without considerable effort.
+
+In the settings screen you can also change the number of questions in the test - from between 15 questions, 30 questions, and 60 questions.
+
+When you take the test, the test difficulty will increase as the test progresses, meaning the last few questions will be much harder compared to the first few questions.
+
+In every screen of this program there is a quit button. In order to quit this program and return the terminal to the state it was before executing this program, click or activate the quit button with your keyboard and this program will be terminated. Be warned that your progress is not saved between sessions.
+
+Once you start the test, there will be two types of questions. The two types are input questions and multiple choice questions.
+
+Multiple choice questions have a number of answers labelled A, B, C, etc. Once you read the question you are required to solve for the correct answer.
+
+In order to choose an answer, navigate with your keyboard (using the up/down or tab/shift+tab keys) to what you believe to be the correct answer, then press enter to choose it as your final answer. Alternatively you can click on it with your mouse.
+
+Once the final answer is chosen, it will either be marked as correct or incorrect (green+tick = correct, red+cross = incorrect).
+
+Input questions require you to type in a number as your answer. In order to do this, focus on the input element and type in what you believe to be the correct answer.
+
+To submit your answer, press enter and/or click the "Ok" button and your answer will be marked.
+
+If it is correct then the input box will become green and a tick will appear.
+
+If it is incorrect then the input box will become red and a cross will appear along with what the correct answer is.
+
+There are two types of questions that have input boxes: these are the general geometry questions and the BODMAS questions.
+
+For the BODMAS question, your answer can only be an integer (eg. -5 or 16). If you do not enter an integer you will not be able to submit your answer.
+
+For the general geometry question, your answer must be a non-negative number (eg. 0, 2.456 or 123). If you enter a negative number or something that is not a number then you will not be able to submit your answer.
+
+Once you answer a question, you cannot change your answer without retaking the test at the end.
+
+After answering a question, you can go to the next question by entering or clicking on the (next) button, which will take you to the next question.
+
+If you want to go to the previous question, click the (back) button and you will be taken to the previous question.
+
+You can also access the menu from the test screen, but if you do so then the test will be ended and you won't be able to re-access the current test.
+
+Note that you do not have to answer all of the questions to complete the test - to skip a question simply press the (next) button without answering the question and it will be skipped. You can always go back to the skipped question through the (back) button.
+
+Once you complete the test, your score will be displayed as well as the time taken to complete the test. From here you can either go back to the main menu screen, exiting the test, or you can retry the entire test / retry only the incorrect questions.
+
+Clicking "retry test" will allow you to restart the entire test - your questions marked both incorrect and correct will be reset.
+
+Clicking "retry incorrect questions" will allow you to retry only the questions marked incorrect. The questions marked correct will remain correct.
+
+Good luck!'''
 
 
 def HelpScreen(controller):

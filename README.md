@@ -16,10 +16,10 @@ The subject areas which can be covered are:
 
 ### The requirements of the educational tool
 
-- [ ] Introduction and information about the tool
-- [ ] Instructions on how to use the tool
+- [x] Introduction and information about the tool
+- [x] Instructions on how to use the tool
 - [x] User input with correct outputs and feedback
-- [ ] Give students information about upcoming sections/questions
+- [x] Give students information about upcoming sections/questions
 - [x] The educational tool has a minimum of 20 questions
 - [x] The question difficulty increases as the user progresses
 - [x] Text-based only, written in Python
