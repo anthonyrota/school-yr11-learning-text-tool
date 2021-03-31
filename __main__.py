@@ -372,7 +372,7 @@ Note: You can also click buttons with your mouse if your terminal supports it.
 
 Scrolling is supported (scroll with your mouse or trackpad).
 
-Ctrl-C: Exit,
+Ctrl-C: Exit.
 
 Hi. Welcome to QuickMaths(tm), the best resource for year 7-8s looking to improve their maths skills!
 
